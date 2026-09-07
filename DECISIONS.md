@@ -1221,3 +1221,27 @@ around a 2.0.2 binary — harmless in CI, which always builds fresh, but the
 runbook's manual-upload path would have put it on PyPI, where a file can be
 yanked and never replaced. `build-wheels.py` now runs the host binary's
 `--version` and refuses to package on disagreement.
+
+## 2026-09-06 — `rust-toolchain.toml` selects the stable channel; the MSRV stays a version
+
+Three fleet machines failed `cargo install agentstow` today with *requires rustc
+1.97 or newer* while their stable channel still sat at 1.96; `rustup update
+stable` fixed each one. Frank then asked that the repo itself "use rust stable"
+so it stays aligned with that command. Read as a toolchain choice, not an MSRV
+change: `rust-toolchain.toml` now names `channel = "stable"`, so a build inside
+the checkout uses whatever stable rustup currently has — on a machine whose
+default toolchain is something else just as on one where it is already stable,
+and the same channel the release workflow installs.
+
+`rust-version` stays `1.97`. The field cannot name a channel, and the 2026-08-13
+entry makes it the stable of the release day on purpose; lowering it would
+loosen that policy, and raising it to today's 1.98 would only hand the same
+failure to more installers. No components are listed: a developer's rustup
+installs stable with the default profile, rustfmt and clippy included, while
+listing them would make every `--profile minimal` release job download tools it
+never runs. The file ships inside the crate like everything else the package
+does not exclude, which changes nothing — rustup resolves the toolchain from the
+directory the command is run in, never from an extracted crate. The workflow
+keeps its explicit `rustup toolchain install stable`: the file would install
+stable on a runner that lacked it, but the explicit step names the profile and
+prints the version.

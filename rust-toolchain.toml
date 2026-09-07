@@ -1,0 +1,6 @@
+# Build with the stable channel — whatever `rustup update stable` has made current —
+# so a machine whose default toolchain is something else still builds this repo the
+# way the release workflow does. The MSRV is a separate matter: `rust-version` in
+# Cargo.toml is the stable of the release day (DECISIONS.md, 2026-08-13).
+[toolchain]
+channel = "stable"
