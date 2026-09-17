@@ -320,11 +320,12 @@ brew fetch agent-sync
    npm install --no-save agent-sync-sh && ./node_modules/.bin/agent-sync --version
    ```
 
-3. **Run the shipped Windows binary on a real Windows machine.** CI compiles
-   and tests Windows *from source* on `windows-latest`; the packaged `win32-*`
-   artifact is a different thing and nothing else executes it —
-   `verify-packaging.sh` does its install test on the host, which is macOS.
-   Between them they can both pass while the artifact users download is broken.
+3. **Run the published Windows artifact on a real Windows machine.** The
+   `build` job does smoke-run `--version` on the freshly built binary for every
+   target except `aarch64-pc-windows-msvc`, which is cross-compiled and executed
+   nowhere. But a version check is a low bar: all three Windows bugs 1.0.1 fixed
+   — symlink flavour, `revert`'s delete, the import line — pass it happily. And
+   nothing runs the *published* zip, after packaging, upload and checksumming.
    `scripts/e2e-windows.ps1` is that check, on a box with Developer Mode or an
    elevated shell (`windows-zx8` is one):
    ```powershell

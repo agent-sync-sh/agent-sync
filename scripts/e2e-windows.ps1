@@ -3,10 +3,14 @@
   End-to-end check of a PUBLISHED agent-sync release on a real Windows machine.
 
 .DESCRIPTION
-  Step 3 of the runbook's Verifying section, made runnable. CI compiles and
-  tests Windows from source on `windows-latest`, and scripts/verify-packaging.sh
-  does its install test on the host, which is macOS - so between them nothing
-  ever executes the win32 artifact a user actually downloads. This does.
+  Step 3 of the runbook's Verifying section, made runnable.
+
+  release.yml's build job does smoke-run `--version` on the freshly built
+  binary, on a matching runner, for every target except aarch64-pc-windows-msvc
+  (cross-compiled, run_check=false, executed nowhere). What nothing else does is
+  run the PUBLISHED zip - after packaging, upload and checksumming - or exercise
+  any behaviour beyond `--version`. All three bugs 1.0.1 fixed are invisible to
+  a version check: symlink flavour, revert's delete, and the import line.
 
   It fetches the release asset anonymously, checks it against SHA256SUMS.txt,
   and drives the whole journey: init, doctor, sync, mcp, status, adopt, revert.

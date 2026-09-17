@@ -2034,3 +2034,24 @@ quietly:
 
 The lesson generalises: a script proven from a scratch path is not proven from
 its committed path. Running it where it will actually live is the check.
+
+## 2026-09-17 — Correction: CI does smoke-run the Windows binary
+
+The previous two entries said nothing ever executes the win32 artifact. That is
+overstated, and since it is committed where someone would rely on it: release.yml's
+`build` job runs `--version` on the freshly built binary on a matching runner,
+gated by a per-target `run_check`, which is true for five of the six targets.
+
+The real gap the e2e script fills is narrower and still worth the script:
+
+- it runs the **published** zip — after packaging, upload and checksumming —
+  rather than a pre-packaging build output;
+- it exercises **behaviour**. A `--version` check passes happily on all three
+  bugs 1.0.1 fixed, because none of them is reachable without creating a
+  symlink, reverting one, or writing an import line.
+
+One target is genuinely never executed anywhere: `aarch64-pc-windows-msvc`, with
+`run_check=false` because it is cross-compiled on an x64 Windows runner that
+cannot run it. `scripts/e2e-windows.ps1` picks its asset from
+`PROCESSOR_ARCHITECTURE`, so running it on an ARM Windows box would close that
+too; we do not have one.
