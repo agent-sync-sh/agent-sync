@@ -325,23 +325,22 @@ brew fetch agent-sync
    artifact is a different thing and nothing else executes it —
    `verify-packaging.sh` does its install test on the host, which is macOS.
    Between them they can both pass while the artifact users download is broken.
-   `windows-zx8` is a real Windows 11 box; download the asset anonymously, check
-   it against `SHA256SUMS.txt`, and run it:
+   `scripts/e2e-windows.ps1` is that check, on a box with Developer Mode or an
+   elevated shell (`windows-zx8` is one):
    ```powershell
-   Invoke-WebRequest -UseBasicParsing -OutFile a.zip `
-     https://github.com/agent-sync-sh/agent-sync/releases/download/agent-sync-vX.Y.Z/agent-sync-X.Y.Z-win32-x64.zip
-   (Get-FileHash a.zip -Algorithm SHA256).Hash.ToLower()
-   Expand-Archive a.zip -DestinationPath . -Force; .\agent-sync.exe --version
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\e2e-windows.ps1 -Tag agent-sync-vX.Y.Z
    ```
-   For a release that fixes Windows behaviour, exercise the fix itself rather
-   than just `--version`. With `HOME`/`USERPROFILE` pointed at a scratch dir,
-   `init` + `sync` + `revert <agent>` covers the three that 1.0.1 shipped: the
-   fan-out link must report `LinkType=SymbolicLink` with the `Directory`
-   attribute, `revert` must delete it (a file-flavour delete fails with OS error
-   5), and the import line written into `.claude/CLAUDE.md` must read
-   `@~/.agents/AGENTS.md` with forward slashes throughout. `revert` refuses
-   while the target is still enabled, so set `targets.<agent> = false` in
-   `.config/agent-sync/agent-sync.toml` first.
+   It needs no toolchain and no checkout of the crate — it fetches the release
+   asset anonymously, checks it against `SHA256SUMS.txt`, and drives `init`,
+   `doctor`, `sync`, `mcp`, `status`, `adopt` and `revert` end to end. Three
+   assertions are the Windows bugs 1.0.1 fixed, marked `[1.0.1 fix]` in the
+   output: directory-symlink flavour on create, directory-symlink deletion on
+   revert (1.0.0 failed there with OS error 5), and forward slashes in the `~`
+   import line. Everything happens under a scratch `HOME` in `$env:TEMP`; the
+   script aborts if that redirection is not honoured and fingerprints the real
+   profile's `~/.claude` and `~/.agents` before and after, because a fan-out
+   escaping into a real Commons is the one failure here that would damage the
+   machine under test.
 
 ## Retiring the agentstow line
 
