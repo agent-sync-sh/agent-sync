@@ -1322,3 +1322,47 @@ it without accepting the old string would not error; every already-stamped file
 would silently reclassify as Foreign, sync would write a duplicate beside it,
 and the orphan sweep would skip it forever. `is_ours()` therefore has to accept
 both markers, following the `PRE_V2_AGENTS_NAME` precedent.
+
+## 2026-09-16 — The agent-sync release line is tagged `agent-sync-v*`
+
+`1.0.0` was chosen as the first agent-sync version before anyone checked the tag
+namespace it would land in. The repo already carries `v1.0.0` through `v2.0.5`,
+transferring an org takes every tag with it, and `v1.0.0` on this remote is
+`c304ef9` — a real, published GitHub Release whose asset URLs the Homebrew
+formula still points at for anyone pinning an old version. Deleting the old tags
+to free the name would break those downloads to solve a naming collision, so the
+tags stay and the new line moves aside: `agent-sync-v1.0.0`, with the package
+version still a plain `1.0.0`.
+
+The prefix is not decoration; it is the only thing distinguishing two release
+series that share one history. A reader landing on this repo sees `v2.0.5` and
+`agent-sync-v1.0.0` and can tell which project each belongs to, which a bare
+`1.0.0` sitting between `v1.0.0` and `v2.0.5` would actively obscure.
+
+The cost is four places that parse the tag: the workflow's `tags: ["v*"]` filter
+(`agent-sync-v*` is not matched by it — `v*` anchors at the start), the guard job
+comparing tag to `Cargo.toml`, `update-formula.sh`'s `version="${tag#v}"`, and
+the `pypi` GitHub environment's tag policy. The last is the dangerous one: an
+environment policy that does not match does not fail the job with an error, it
+refuses the deployment, so a wrong pattern there looks like a hang rather than a
+bug. All four are changed together in step 4, before any 1.0.0 tag exists.
+
+## 2026-09-16 — Marker compatibility is one-way; the old binary is retired
+
+`src/render.rs` gets the new marker and `is_ours()` accepts both, so agent-sync
+adopts files agentstow stamped. The reverse is deliberately not built: agentstow
+2.0.6 ships without knowledge of the new marker, so running it after agent-sync
+has rendered would see those files as Foreign and duplicate them.
+
+Teaching 2.0.6 the future marker was possible — it is a string constant in a
+release not yet tagged — and was rejected because it buys safety only for a user
+who installs the successor and then goes back to the predecessor, keeps both on
+`PATH`, and runs the old one again. The population that could do this is two
+stars' worth of installs, the blast radius is `~/.gemini/commands/*.toml` alone
+(the only surface `Commands::Render` writes), and the failure is a visible
+duplicate file rather than data loss. Migration is: install agent-sync, delete
+agentstow. Supporting an indefinite both-installed state is machinery for a
+state nobody should be in.
+
+This is the one place the rename is not symmetric, and it is why the deprecation
+notices say the old package is replaced rather than superseded.
