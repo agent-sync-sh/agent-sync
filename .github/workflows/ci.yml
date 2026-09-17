@@ -1,0 +1,82 @@
+name: ci
+
+# Runs the test suite and the lints on every pull request and every push to
+# main. release.yml deliberately does not: it fires on release tags, on manual
+# dispatch, and on pull requests touching a narrow paths filter (npm/, scripts/,
+# Cargo.toml, itself). Nothing in that filter covers src/ or tests/, so before
+# this workflow existed a pull request rewriting the whole crate ran zero checks
+# and a tag published to four registries without ever compiling the 319-test
+# suite. None of crates.io, npm or PyPI lets a version be re-uploaded, so an
+# untested publish is not something a follow-up commit can take back.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same branch makes the older run's answer worthless, and
+# the matrix is three runners wide.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # one platform failing should not hide the others
+      matrix:
+        include:
+          - name: linux
+            os: ubuntu-latest
+            scope: --all-targets
+            run_tests: true
+          - name: macos
+            os: macos-latest
+            scope: --all-targets
+            run_tests: true
+          - name: windows
+            os: windows-latest
+            # The integration tests do not compile here, let alone run:
+            # tests/common/mod.rs reaches for std::os::unix::fs::symlink and
+            # std::os::unix::io::AsRawFd unguarded, so `cargo test` on Windows
+            # is a build failure, not a vacuous pass. Keeping them Unix-only is
+            # the standing decision (DECISIONS 2026-08-15), so this leg proves
+            # what Windows still can: that the library and binary compile and
+            # lint clean, which is where the real cfg(windows) branches live —
+            # link.rs, lock.rs, write.rs and doctor.rs each fork by platform,
+            # and none of that code is exercised by a Unix-only test run.
+            scope: --lib --bins
+            run_tests: false
+    steps:
+      - uses: actions/checkout@v7
+      - name: install the rust toolchain
+        run: |
+          # Pinned the same way release.yml pins it: Cargo.toml declares edition
+          # 2024 and rust-version 1.97, so a stale preinstalled toolchain fails
+          # with a confusing message rather than an honest one.
+          rustup toolchain install stable --profile minimal -c clippy
+          rustup default stable
+          rustc --version
+      - name: clippy
+        run: cargo clippy --locked ${{ matrix.scope }} -- -D warnings
+      - name: test
+        if: ${{ matrix.run_tests }}
+        run: cargo test --locked
+      - name: the windows build links
+        if: ${{ !matrix.run_tests }}
+        # clippy analyses without codegen; this is what catches a Windows
+        # target that type-checks but fails to build or link.
+        run: cargo build --locked --lib --bins
+
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: install the rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal -c rustfmt
+          rustup default stable
+      - run: cargo fmt --all --check

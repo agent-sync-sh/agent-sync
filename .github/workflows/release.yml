@@ -20,8 +20,29 @@ on:
       - "Cargo.toml"
 
 jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    # Gates the whole pipeline. build fans out to package and wheels, and every
+    # publish job reaches back through package, so a red suite stops the tag
+    # before anything reaches crates.io, npm or PyPI -- none of which allow a
+    # version to be re-uploaded, which makes a bad publish permanent in a way a
+    # bad commit is not. The three-OS matrix lives in ci.yml and runs on every
+    # pull request; this leg only has to answer "is the code good" at the moment
+    # a tag is about to spend irreversible registry slots.
+    steps:
+      - uses: actions/checkout@v7
+      - name: install the rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+      - name: test
+        run: cargo test --locked
+
   build:
     name: build ${{ matrix.target }}
+    needs: test
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
