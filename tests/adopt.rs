@@ -262,7 +262,7 @@ fn a_repo_path_becomes_an_absolute_commons_link_and_fans_out() {
         .assert_stdout_has("linked into pi (.pi/agent/skills)");
     assert_eq!(
         f.link_text(".agents/skills/research"),
-        path.display().to_string(),
+        common::slashed(&path),
         "the Commons link is absolute, the path exactly as given"
     );
     assert_eq!(
@@ -310,7 +310,7 @@ fn a_git_file_marks_a_durable_home_too() {
         .assert_stdout_has("(commands)");
     assert_eq!(
         f.link_text(".agents/commands/ship.md"),
-        path.display().to_string()
+        common::slashed(&path)
     );
 }
 
@@ -344,7 +344,7 @@ fn a_symlink_input_is_linked_as_given_never_resolved_through() {
 
     assert_eq!(
         f.link_text(".agents/skills/research"),
-        path.display().to_string(),
+        common::slashed(&path),
         "the Commons links to the symlink, not through it"
     );
     assert_eq!(
@@ -420,7 +420,7 @@ fn a_commons_link_pointing_elsewhere_refuses_to_repoint() {
     ));
     assert_eq!(
         f.link_text(".agents/skills/research"),
-        other.display().to_string(),
+        common::slashed(&other),
         "the existing link is untouched"
     );
 }

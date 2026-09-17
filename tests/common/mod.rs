@@ -13,6 +13,20 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
+/// A path rendered with `/` separators, whatever the platform spells it with.
+///
+/// The comparison partner of [`Fixture::link_text`]: both sides of an assertion
+/// about link shape have to be normalised the same way, or they disagree on
+/// Windows for a reason that has nothing to do with what is being tested.
+pub fn slashed(p: &Path) -> String {
+    let text = p.display().to_string();
+    if cfg!(windows) {
+        text.replace('\\', "/")
+    } else {
+        text
+    }
+}
+
 /// Join a `/`-separated relative path onto `base`, one component at a time.
 ///
 /// Every `rel` in this harness is written with forward slashes for
@@ -87,9 +101,24 @@ impl Outcome {
         self
     }
 
+    /// Output with path separators normalised to `/`.
+    ///
+    /// The CLI prints native paths, so on Windows it reports
+    /// `removed .claude\skills\research` where every test asserts the `/`
+    /// form. The assertions are about *which entry* was reported, not how the
+    /// platform spells a separator, so both sides are normalised before the
+    /// comparison rather than every needle being written twice.
+    fn shaped(text: &str) -> String {
+        if cfg!(windows) {
+            text.replace('\\', "/")
+        } else {
+            text.to_string()
+        }
+    }
+
     pub fn assert_stdout_has(&self, needle: &str) -> &Self {
         assert!(
-            self.stdout.contains(needle),
+            Self::shaped(&self.stdout).contains(&Self::shaped(needle)),
             "expected stdout to contain {needle:?}\nstdout:\n{}",
             self.stdout
         );
@@ -98,7 +127,7 @@ impl Outcome {
 
     pub fn assert_stdout_lacks(&self, needle: &str) -> &Self {
         assert!(
-            !self.stdout.contains(needle),
+            !Self::shaped(&self.stdout).contains(&Self::shaped(needle)),
             "expected stdout NOT to contain {needle:?}\nstdout:\n{}",
             self.stdout
         );
@@ -107,7 +136,7 @@ impl Outcome {
 
     pub fn assert_stderr_has(&self, needle: &str) -> &Self {
         assert!(
-            self.stderr.contains(needle),
+            Self::shaped(&self.stderr).contains(&Self::shaped(needle)),
             "expected stderr to contain {needle:?}\nstderr:\n{}",
             self.stderr
         );
@@ -116,7 +145,7 @@ impl Outcome {
 
     pub fn assert_stderr_lacks(&self, needle: &str) -> &Self {
         assert!(
-            !self.stderr.contains(needle),
+            !Self::shaped(&self.stderr).contains(&Self::shaped(needle)),
             "expected stderr NOT to contain {needle:?}\nstderr:\n{}",
             self.stderr
         );

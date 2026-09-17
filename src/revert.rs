@@ -179,7 +179,7 @@ fn revert_rendered(env: &Env, target: &Target, r: &mut Reporter) -> usize {
         if !ours {
             continue;
         }
-        match fs::remove_file(&path) {
+        match link::remove_symlink(&path) {
             Ok(()) => {
                 r.line(format!("removed {}", rel_display(env, &path)));
                 removed += 1;
@@ -242,7 +242,7 @@ fn remove_our_link(env: &Env, path: &Path, commons: &Path, r: &mut Reporter) -> 
     if !link::is_ours(path, commons) {
         return 0;
     }
-    match fs::remove_file(path) {
+    match link::remove_symlink(path) {
         Ok(()) => {
             r.line(format!("removed {}", rel_display(env, path)));
             1

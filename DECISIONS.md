@@ -1823,3 +1823,53 @@ set for this work is met: Windows executes a non-zero test count (17), and the
 Unix legs went from 319 to 332 rather than dropping.
 
 Proven on PR #1, run `35250805862`: linux, macos, windows and rustfmt all green.
+
+## 2026-09-17 — The Windows integration failures, cluster by cluster
+
+Working the 18 failures on `windows-zx8` took Windows from 260-ish to **330 of
+333** (Windows runs 4 `cfg(windows)`-only tests where Unix runs 3 `cfg(unix)`
+ones, so 333 is its denominator). Unix stayed at 332 throughout. No test was
+`#[ignore]`d and the `cfg(unix)` set did not grow past the original three.
+
+Which was which, since a production fix here is user-facing:
+
+**revert + legacy prune (12 tests) — PRODUCTION BUG.** Every revert and prune
+path failed with `cannot remove ...: Access denied (os error 5)`. Unix unlinks
+any symlink with `remove_file`; Windows refuses that for a *directory* symlink
+and wants `remove_dir`, which removes the link and never its target. Fixed by
+adding `link::remove_symlink` as the mirror of `create_symlink` — the codebase
+already holds that "the platform split lives nowhere else", and removal had been
+open-coded at four sites. This is the second user-facing Windows bug the test leg
+has found, after `normalize`.
+
+**instructions + one adopt test (4 tests) — PRODUCTION BUG.** `import_reference`
+built `format!("~/{}", rel.display())`: one hardcoded forward slash, then the
+remainder rendered natively, so Windows wrote `@~/.agents\AGENTS.md` into the
+user's `CLAUDE.md`. That is coherent as neither a Unix nor a Windows path, in a
+line another tool parses, and the `~/` prefix had already committed the
+reference to forward slashes. The absolute-path branch stays native, because an
+absolute path is not a `~` reference. Not a design decision: the function was
+internally inconsistent, not making a platform choice.
+
+**adopt link-shape assertions and CLI output (the rest) — HARNESS.** `path()`
+joined `/`-separated literals wholesale, which `Path::join` keeps verbatim,
+yielding mixed-separator strings no production output matches; it now joins
+component-wise. Assertions comparing a link's text to a path string disagreed
+because the two normalise differently, so `common::slashed` is now the
+comparison partner of `link_text`. The output assertions compare on shape:
+the CLI correctly prints native paths, and the tests are about *which* entry was
+reported, not how a platform spells a separator.
+
+**Three still failing, all harness or test data, none a product defect:**
+`a_symlink_input_is_copied_through_to_its_content` and
+`a_symlink_input_is_linked_as_given_never_resolved_through` (Windows symlink
+flavour is fixed at creation time, so a harness link made before its target
+exists is typed as a file and later reads as a shape mismatch, or as
+`ERROR_INVALID_NAME` through it), and
+`a_missing_source_is_still_listed_and_marked`, which hardcodes the Unix-absolute
+literal `/nowhere/skills/research` — a path with no Windows meaning, so the
+fixture needs a platform-appropriate missing path rather than the code changing.
+
+**The ci.yml Windows leg therefore still runs `--lib`, not the full suite.** The
+flip is the last step and it waits on those three, for the same reason as before:
+a green tick bought by hiding three real failures is worth less than the failures.

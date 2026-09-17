@@ -123,7 +123,7 @@ fn the_legacy_prune_leaves_foreign_links_and_real_content_alone() {
     assert!(!f.present(".codex/skills/research"), "ours goes");
     assert_eq!(
         f.link_text(".codex/skills/theirs"),
-        elsewhere.display().to_string(),
+        common::slashed(&elsewhere),
         "a Foreign link is never touched"
     );
     assert_eq!(
@@ -209,7 +209,7 @@ fn leaves_a_link_that_resolves_outside_the_commons() {
 
     assert_eq!(
         f.link_text(".claude/skills/other"),
-        elsewhere.display().to_string(),
+        common::slashed(&elsewhere),
         "Foreign links are never touched"
     );
 }
