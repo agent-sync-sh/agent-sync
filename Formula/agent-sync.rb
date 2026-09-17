@@ -8,8 +8,8 @@
 class AgentSync < Formula
   desc "One canonical .agents/ folder, fanned out to all your AI coding agents"
   homepage "https://agent-sync.sh"
-  license "MIT"
   version "1.0.0"
+  license "MIT"
 
   on_macos do
     on_arm do

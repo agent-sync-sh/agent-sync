@@ -66,8 +66,8 @@ cat > "$root/Formula/agent-sync.rb" <<RUBY
 class AgentSync < Formula
   desc "One canonical .agents/ folder, fanned out to all your AI coding agents"
   homepage "https://agent-sync.sh"
-  license "MIT"
   version "$version"
+  license "MIT"
 
   on_macos do
     on_arm do
