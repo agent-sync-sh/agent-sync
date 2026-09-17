@@ -33,6 +33,13 @@ owner and repo, so all of them have to be re-registered against the names below.
   carries an `agent-sync-v*` **tag** deployment policy, so a run on a branch
   cannot reach it even though it sits in the same workflow file.
 
+  The environment itself **survived the repo transfer** — only its tag policy
+  was stale, still reading `v*` from the agentstow line. Read it with
+  `gh api repos/agent-sync-sh/agent-sync/environments/pypi/deployment-branch-policies`;
+  a policy is added with `-X POST -f name='agent-sync-v*' -f type=tag` and a
+  stale one deleted by its id. Add before deleting, so the environment is never
+  left without a policy.
+
   **This is the quiet one.** A wrong tag policy does not fail loudly — the job
   simply never receives a credential. Re-check the environment after any change
   to the tag namespace, which the rename was.
@@ -68,9 +75,12 @@ name needs the scope to exist and the publishing account to belong to it:
 2. Create an organisation named exactly `agent-sync-sh`
    (<https://www.npmjs.com/org/create>). The **free** tier is enough — public
    packages only, which is what these are.
-3. `npm org ls agent-sync-sh` should list `soulmachine` as an owner. A 403 is
-   not evidence either way: this machine's credential can publish but is not
-   authorised to read organisation membership. The publish is what settles it.
+3. `npm org ls agent-sync-sh` should list `soulmachine` as an owner. With a
+   credential from `npm login` this is a reliable probe, and the distinction is
+   worth knowing: a scope that exists prints its members, and one that does not
+   fails `E404 Scope not found` — the same error a nonsense scope gives. (An
+   older note here said a 403 made it useless. That was the dead publish-only
+   token, not the login session.)
 
 **A passing dry run proves nothing here.** `npm publish --dry-run` packs and
 validates locally; it does not check that the scope exists or that you may
