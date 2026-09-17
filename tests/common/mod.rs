@@ -222,13 +222,13 @@ impl Fixture {
 
     /// Create a home-relative directory.
     pub fn dir(&self, rel: &str) -> &Self {
-        fs::create_dir_all(self.home.join(rel)).expect("create dir");
+        fs::create_dir_all(join_rel(&self.home, rel)).expect("create dir");
         self
     }
 
     /// Write a home-relative file, creating parents.
     pub fn file(&self, rel: &str, body: &str) -> &Self {
-        let p = self.home.join(rel);
+        let p = join_rel(&self.home, rel);
         if let Some(parent) = p.parent() {
             fs::create_dir_all(parent).expect("create parents");
         }
@@ -251,7 +251,7 @@ impl Fixture {
     /// Create a Commons-relative symlink pointing at `target` (verbatim, so a
     /// test can create a deliberately dangling one).
     pub fn commons_symlink(&self, rel: &str, target: &str) -> &Self {
-        let p = self.commons.join(rel);
+        let p = join_rel(&self.commons, rel);
         if let Some(parent) = p.parent() {
             fs::create_dir_all(parent).expect("create parents");
         }
@@ -261,7 +261,7 @@ impl Fixture {
 
     /// Write a Commons-relative file, creating parents.
     pub fn commons_file(&self, rel: &str, body: &str) -> &Self {
-        let p = self.commons.join(rel);
+        let p = join_rel(&self.commons, rel);
         if let Some(parent) = p.parent() {
             fs::create_dir_all(parent).expect("create parents");
         }
@@ -308,7 +308,7 @@ impl Fixture {
     /// and returns backslashes, so without this every such assertion would
     /// need a second, identical-looking literal.
     pub fn link_text(&self, rel: &str) -> String {
-        let text = fs::read_link(self.home.join(rel))
+        let text = fs::read_link(join_rel(&self.home, rel))
             .unwrap_or_else(|e| panic!("{rel} is not a symlink: {e}"))
             .display()
             .to_string();
@@ -321,37 +321,37 @@ impl Fixture {
 
     /// Whether a home-relative path is a symlink (without following it).
     pub fn is_symlink(&self, rel: &str) -> bool {
-        fs::symlink_metadata(self.home.join(rel))
+        fs::symlink_metadata(join_rel(&self.home, rel))
             .map(|m| m.file_type().is_symlink())
             .unwrap_or(false)
     }
 
     /// Whether a home-relative path exists as a real directory (not a link).
     pub fn is_real_dir(&self, rel: &str) -> bool {
-        fs::symlink_metadata(self.home.join(rel))
+        fs::symlink_metadata(join_rel(&self.home, rel))
             .map(|m| m.is_dir())
             .unwrap_or(false)
     }
 
     /// Whether a home-relative path exists at all (following links).
     pub fn exists(&self, rel: &str) -> bool {
-        self.home.join(rel).exists()
+        join_rel(&self.home, rel).exists()
     }
 
     /// Whether a home-relative path exists as a link or file, even if broken.
     pub fn present(&self, rel: &str) -> bool {
-        fs::symlink_metadata(self.home.join(rel)).is_ok()
+        fs::symlink_metadata(join_rel(&self.home, rel)).is_ok()
     }
 
     /// Where a home-relative symlink actually lands, following it.
     pub fn resolves_to(&self, rel: &str) -> PathBuf {
-        fs::canonicalize(self.home.join(rel))
+        fs::canonicalize(join_rel(&self.home, rel))
             .unwrap_or_else(|e| panic!("{rel} does not resolve: {e}"))
     }
 
     /// Create a home-relative symlink with verbatim link text.
     pub fn symlink(&self, rel: &str, target: &str) -> &Self {
-        let p = self.home.join(rel);
+        let p = join_rel(&self.home, rel);
         if let Some(parent) = p.parent() {
             fs::create_dir_all(parent).expect("create parents");
         }
@@ -361,20 +361,21 @@ impl Fixture {
 
     /// Raw text of a Commons-relative file.
     pub fn contents_of_commons(&self, rel: &str) -> String {
-        fs::read_to_string(self.commons.join(rel))
+        fs::read_to_string(join_rel(&self.commons, rel))
             .unwrap_or_else(|e| panic!("cannot read Commons/{rel}: {e}"))
     }
 
     /// Parse a home-relative JSON file.
     pub fn json(&self, rel: &str) -> serde_json::Value {
-        let body = fs::read_to_string(self.home.join(rel))
+        let body = fs::read_to_string(join_rel(&self.home, rel))
             .unwrap_or_else(|e| panic!("cannot read {rel}: {e}"));
         serde_json::from_str(&body).unwrap_or_else(|e| panic!("{rel} is not JSON: {e}"))
     }
 
     /// Raw bytes of a home-relative file, as text.
     pub fn contents(&self, rel: &str) -> String {
-        fs::read_to_string(self.home.join(rel)).unwrap_or_else(|e| panic!("cannot read {rel}: {e}"))
+        fs::read_to_string(join_rel(&self.home, rel))
+            .unwrap_or_else(|e| panic!("cannot read {rel}: {e}"))
     }
 
     /// Unix permission bits of a home-relative file. Unix-only: Windows access
@@ -382,7 +383,7 @@ impl Fixture {
     #[cfg(unix)]
     pub fn mode(&self, rel: &str) -> u32 {
         use std::os::unix::fs::PermissionsExt;
-        fs::metadata(self.home.join(rel))
+        fs::metadata(join_rel(&self.home, rel))
             .unwrap_or_else(|e| panic!("cannot stat {rel}: {e}"))
             .permissions()
             .mode()
