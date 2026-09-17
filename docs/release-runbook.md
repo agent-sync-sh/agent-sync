@@ -119,6 +119,39 @@ npm packages stay in lockstep by construction — a release is a one-line bump.
    than failing.
 4. Verify as described below once the workflow is green.
 
+## Recovering a half-published release
+
+A run can publish some channels and fail before others: 2.0.6 reached
+crates.io, npm, the GitHub Release and the formula, then failed the wheels job
+and skipped PyPI. The publish jobs fire **only on a tag push**, so a
+`workflow_dispatch` cannot finish the job — recovery is either moving the tag
+onto a fixed commit or bumping the version. Moving it is usually right: every
+publish job is idempotent (crates.io checks the index, npm runs `npm view` per
+package, PyPI passes `skip-existing`), so the channels already done skip
+themselves and only the missing one publishes.
+
+Moving a tag has one trap that does not announce itself. **Deleting a tag
+demotes its GitHub Release to a draft**, and a draft's assets return 404 to
+everyone — which breaks `brew install`, because the formula points at those
+asset URLs. The re-run does not repair it: `gh release view` finds the draft,
+clobbers the assets into it, and reports success, so the workflow goes green
+while the tap is broken. After any tag move, publish it again and prove an
+anonymous download works:
+
+```sh
+gh release edit vX.Y.Z --draft=false --verify-tag
+curl -fsSLI https://github.com/agentstow/agentstow/releases/download/vX.Y.Z/agentstow-X.Y.Z-darwin-arm64.tar.gz
+```
+
+GitHub's asset CDN trails the un-draft by around half a minute, so a 404 in the
+first few seconds is not yet a problem; retry before concluding anything.
+
+The builds are **not** byte-reproducible — a re-run of the same commit produced
+four different tarball checksums — so the formula is regenerated and recommitted
+on every replay. That is self-consistent, because the assets are clobbered in
+the same run, but a formula left over from an earlier run is stale. Verify the
+formula against the live assets rather than assuming, as *Verifying* describes.
+
 ## Manual fallback
 
 If CI publishing is unavailable, publish by hand from the workflow's
