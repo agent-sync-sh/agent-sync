@@ -125,23 +125,30 @@ one more reason not to add platform packages casually.
    than failing.
 4. Verify as described below once the workflow is green.
 
-### npm's trusted publishing has never actually run
+### npm's trusted publishing is proven (1.0.1, run `35272226593`)
 
-**Watch the npm job on the next release — it has published nothing so far.**
-The 1.0.0 workflow run was green, but its npm job did no work: the bootstrap
-publishes had already put 1.0.0 on the registry with real credentials, so all
-seven packages hit the idempotence check and reported `already on the registry;
-skipping` (run `35214086412`, job *publish to npm*). The seven
-trusted-publisher entries on npmjs.com have therefore never authenticated a
-publish, and the first one to exercise them is the next version bump.
+The 1.0.0 run proved nothing here: the bootstrap publishes had already put that
+version on the registry with real credentials, so all seven packages hit the
+idempotence check and reported `already on the registry; skipping`. **1.0.1 is
+the run that exercised it.** Its *publish to npm* job published all seven for
+real — six `@agent-sync-sh/*` platform packages and the `agent-sync-sh`
+launcher, each logged as `+ <name>@1.0.1` with no skips — and wrote seven signed
+provenance statements to the sigstore transparency log. `npm view
+@agent-sync-sh/linux-x64@1.0.1 dist.attestations` returns a
+`https://slsa.dev/provenance/v1` predicate.
 
-crates.io is exercised only as far as minting the OIDC token, which happens in
-a step *before* its own idempotence skip. PyPI is the one channel proven end to
-end — it created the project from the pending publisher on that run.
+All three registries are now proven end to end: npm and PyPI by a real OIDC
+publish, crates.io by the same run reaching `Uploading agent-sync-sh v1.0.1`.
 
-So a green npm job on the 1.0.0 run is not evidence the path works. If the next
-release fails there, the fix is registry-side and needs no tag move: see the
-re-run note below.
+**The tarball lags the metadata, and that is not a failure.** On 1.0.1 the
+packument listed `1.0.1` and `npm install` still failed with a 404 on
+`/agent-sync-sh/-/agent-sync-sh-1.0.1.tgz` for about a minute. Publish had
+already succeeded. Wait on the artifact rather than the packument, and never
+republish:
+
+```sh
+until curl -sf -o /dev/null https://registry.npmjs.org/agent-sync-sh/-/agent-sync-sh-1.0.1.tgz; do sleep 15; done
+```
 
 ## Recovering a half-published release
 

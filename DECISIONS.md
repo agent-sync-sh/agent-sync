@@ -1948,3 +1948,35 @@ The toolchain is therefore named per command as `+1.97`, which is the only form
 that outranks the file, and the job asserts the version it got rather than
 printing it. A check whose whole purpose is to catch silent drift must not be
 able to drift silently itself.
+
+## 2026-09-17 — 1.0.1 released, and npm's trusted publishing is finally proven
+
+Cut on the user's authorization, collected by AskUserQuestion naming the release
+explicitly and relayed through the advisor; the advisor had refused to trigger a
+public publish itself and escalated, which is the right split.
+
+1.0.1 ships the three Windows bugs the new test leg found — `link::normalize`
+dropping the drive prefix, directory symlinks that `remove_file` cannot delete
+on revert and prune, and the malformed `@~/.agents\AGENTS.md` import line — plus
+the CI work: the full suite on three platforms and a verified MSRV.
+
+**The release path is now proven end to end for the first time.** Run
+`35272226593`, 16/16 jobs green. The *publish to npm* job published all seven
+packages for real (`+ <name>@1.0.1`, no skips) with seven signed provenance
+statements in the sigstore log — the seven trusted-publisher entries registered
+back in September had never authenticated anything until this run, because the
+1.0.0 bootstrap had already occupied that version. crates.io and PyPI published
+too, and the new `test` job gated `build` as designed.
+
+Verified after the fact rather than assumed: `npm install`, `pip install`,
+`cargo install --locked` and `brew upgrade` all produce `agent-sync 1.0.1`; the
+attestation predicate is `slsa.dev/provenance/v1`; the anonymous asset download
+works; the Latest badge points at `agent-sync-v1.0.1`.
+
+**Two propagation traps, both mistakable for a failed publish.** PyPI's
+top-level `/pypi/<name>/json` served a cached `1.0.0` while the simple index and
+`/pypi/<name>/1.0.1/json` already had the new version. And npm's packument
+listed `1.0.1` while the *tarball* still 404ed for about a minute, which is a
+sharper version of the lag already in the runbook — the existing wait loop polls
+the packument, which had already gone green. Both notes now say to wait on the
+artifact, not the metadata.
