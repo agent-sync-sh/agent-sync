@@ -2001,3 +2001,36 @@ including an error message printing the full `C:\...\agent-sync.toml`.
 The runbook's *Verifying* section now carries this as a step, because the gap is
 structural rather than specific to this release: source tests and packaging
 tests can both be green without anyone running the Windows artifact.
+
+## 2026-09-17 — The Windows e2e check is a script, not prose
+
+`scripts/e2e-windows.ps1` makes step 3 of the runbook's *Verifying* section
+runnable. It takes the release tag, fetches the asset anonymously, checks it
+against `SHA256SUMS.txt`, and drives `init`, `doctor`, `sync`, `mcp`, `status`,
+`adopt` and `revert` end to end against the shipped binary — 40 assertions, of
+which three are the Windows bugs 1.0.1 fixed and are labelled `[1.0.1 fix]` in
+the output. It needs no toolchain and no checkout of the crate, because the
+thing under test is the artifact, not the source.
+
+**It guards the machine it runs on.** `windows-zx8` has a real `~/.claude` and a
+real `~/.agents`, so a fan-out that ignored the scratch `HOME` would write into
+someone's actual Commons. The script fingerprints both before it starts, aborts
+before any fan-out if `init` shows the redirection is not honoured, and asserts
+both are unmoved at the end. That is the one failure mode here that would damage
+what it is testing, so it is checked rather than assumed.
+
+**Running the committed copy found two defects the /tmp draft had hidden**, both
+Windows PowerShell 5.1 behaviours, and both worth recording because they fail
+quietly:
+
+- GitHub serves `SHA256SUMS.txt` as `application/octet-stream`, and PS 5.1
+  returns a `byte[]` from `.Content` for a non-text content type. `-split` on
+  that yields nothing, so the checksum assertion was comparing against an empty
+  string — it reported FAIL here, but the same shape elsewhere would just as
+  easily have compared two empty strings and passed. It downloads to a file and
+  parses with `Select-String` now.
+- PS 5.1 reads a BOM-less `.ps1` as ANSI, so the em-dashes in the output strings
+  arrived as mojibake. The script is ASCII-only rather than carrying a BOM.
+
+The lesson generalises: a script proven from a scratch path is not proven from
+its committed path. Running it where it will actually live is the check.
