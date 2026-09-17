@@ -1,14 +1,14 @@
-# agentstow.dev — a static site on Workers Static Assets.
+# agent-sync.sh — a static site on Workers Static Assets.
 #
 # There is deliberately no `main`: with no Worker script, every request is a
 # free static-asset request, so the free plan's Worker-invocation cap never
 # applies. Adding `main` or `run_worker_first` would change that.
 #
-# Only the apex is attached here. www.agentstow.dev, agentstow.com and
-# agentstow.org are zone Redirect Rules, because Cloudflare's _redirects file
-# does not support domain-level redirects.
+# Only the apex is attached here. agentstow.dev, agentstow.com and agentstow.org
+# (and their www) are zone Redirect Rules to this host, because Cloudflare's
+# _redirects file does not support domain-level redirects.
 
-name = "agentstow-site"
+name = "agent-sync-site"
 compatibility_date = "2026-08-13"
 
 [assets]
@@ -16,5 +16,5 @@ directory = "./public/"
 not_found_handling = "404-page"
 
 [[routes]]
-pattern = "agentstow.dev"
+pattern = "agent-sync.sh"
 custom_domain = true

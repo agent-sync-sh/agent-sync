@@ -1,6 +1,6 @@
-# agentstow.dev
+# agent-sync.sh
 
-The source for <https://agentstow.dev>. It lives here, inside the repo it documents, so a
+The source for <https://agent-sync.sh>. It lives here, inside the repo it documents, so a
 change to the CLI and the change it implies on the website can be one commit and one
 review.
 
@@ -35,7 +35,7 @@ so link to `/docs`, never `/docs.html`.
 `public/styles.css` is structured after [vercel.com/design.md](https://vercel.com/design.md),
 with three departures documented in a comment at the top of the file: a platform font
 stack instead of Geist, a warm ramp read as "monochrome", and a palette defined here
-rather than inherited, because agentstow has no web UI.
+rather than inherited, because agent-sync has no web UI.
 
 The accent colour is spent on exactly four things — link text, the one primary button, the
 focus ring, and the hairline on the mark. Code samples use weight and dimming rather than
@@ -43,12 +43,20 @@ colour, so they survive greyscale.
 
 ## Regenerating the artwork
 
-`public/og.png` is a screenshot of `og.html`:
+`public/og.png` is a screenshot of `og.html`, taken with the light scheme forced — headless
+Chrome inherits the Mac's appearance, so a plain `--screenshot` renders the dark theme on a
+dark desktop and no Chrome flag overrides it. `playwright-cli` refuses `file://`, hence the
+throwaway server:
 
 ```sh
-"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
-  --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
-  --screenshot=public/og.png --window-size=1200,630 "file://$PWD/og.html"
+python3 -m http.server 8765 --bind 127.0.0.1 &
+playwright-cli run-code "async page => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.setViewportSize({ width: 1200, height: 630 });
+  await page.goto('http://127.0.0.1:8765/og.html');
+  await page.screenshot({ path: 'public/og.png' });
+}"
+playwright-cli close; kill %1; rm -rf .playwright-cli
 ```
 
 The favicons come from an inline SVG of the mark, rasterised with ImageMagick at 32, 180

@@ -3,24 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>agentstow — One canonical .agents/ folder, fanned out to all your AI coding agents</title>
+<title>agent-sync — One canonical .agents/ folder, fanned out to all your AI coding agents</title>
 <meta name="description" content="The Commons at ~/.agents/ syncs skills, instructions, MCP servers, slash commands, agents and hooks to Claude Code, Codex, opencode, Cursor, Windsurf, Roo and more — symlinks where bytes can be identical, key-merge where they can't, and no state file.">
-<link rel="canonical" href="https://agentstow.dev/">
-<link rel="alternate" hreflang="en" href="https://agentstow.dev/">
-<link rel="alternate" hreflang="zh-Hans" href="https://agentstow.dev/zh">
-<link rel="alternate" hreflang="x-default" href="https://agentstow.dev/">
+<link rel="canonical" href="https://agent-sync.sh/">
+<link rel="alternate" hreflang="en" href="https://agent-sync.sh/">
+<link rel="alternate" hreflang="zh-Hans" href="https://agent-sync.sh/zh">
+<link rel="alternate" hreflang="x-default" href="https://agent-sync.sh/">
 <link rel="stylesheet" href="/styles.css">
 <link rel="icon" href="/favicon-32.png" sizes="32x32">
 <link rel="icon" href="/favicon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script src="/lang.js"></script>
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://agentstow.dev/">
-<meta property="og:title" content="agentstow — Canonical configs, fanned out to all your AI coding agents">
+<meta property="og:url" content="https://agent-sync.sh/">
+<meta property="og:title" content="agent-sync — Canonical configs, fanned out to all your AI coding agents">
 <meta property="og:description" content="One shared Commons, twelve agents, six families of config. Symlink fan-out, stateless key-merge, and nothing it doesn't own is ever touched.">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="zh_CN">
-<meta property="og:image" content="https://agentstow.dev/og.png">
+<meta property="og:image" content="https://agent-sync.sh/og.png">
 <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
@@ -36,11 +36,11 @@
         <circle cx="16" cy="10" r="2.1" stroke="currentColor" stroke-width="1.25"/>
         <circle cx="16" cy="16" r="2.1" stroke="currentColor" stroke-width="1.25"/>
       </svg>
-      agentstow
+      agent-sync
     </a>
     <nav>
       <a href="/docs">Docs</a>
-      <a href="https://github.com/agentstow/agentstow">GitHub</a>
+      <a href="https://github.com/agent-sync-sh/agent-sync">GitHub</a>
       <a href="/zh?lang=zh" lang="zh-Hans" hreflang="zh-Hans">简体中文</a>
     </nav>
   </div>
@@ -53,7 +53,7 @@
       <h1>One canonical .agents/ folder, fanned out to all your AI coding agents.</h1>
       <p class="lede"><strong>The Commons — the canonical <code>~/.agents/</code> directory
       — holds the single real copy of every config you share</strong> — skills,
-      instructions, MCP servers, slash commands, agents, hooks. <code>agentstow sync</code>
+      instructions, MCP servers, slash commands, agents, hooks. <code>agent-sync sync</code>
       fans it out to every agent you have installed — twelve are supported: symlinks where
       the bytes can be identical, a rendered key-merge where they can't. There is no state
       file, and there never will be.</p>
@@ -69,7 +69,7 @@
 
       <div class="actions">
         <a class="btn primary" href="/docs">Read the docs</a>
-        <a class="btn" href="https://github.com/agentstow/agentstow">View on GitHub</a>
+        <a class="btn" href="https://github.com/agent-sync-sh/agent-sync">View on GitHub</a>
       </div>
     </div>
   </section>
@@ -93,7 +93,7 @@ code-review -> ../../../.agents/skills/code-review</pre>
           as a relative symlink — computed, not hand-typed, so the tree survives being
           moved or restored somewhere else.</p>
           <p>Codex, opencode, oh-my-pi, Gemini CLI and Cursor read
-          <code>~/.agents/skills</code> themselves, so agentstow writes no skill links for
+          <code>~/.agents/skills</code> themselves, so agent-sync writes no skill links for
           them at all — and where Codex or Cursor still reads its old fan-out directory,
           <code>sync</code> prunes our now-duplicate links from it. A link of ours that
           dangles gets pruned; a link pointing anywhere else is Foreign and is left
@@ -142,7 +142,7 @@ trust_level = "trusted"</pre>
       <h2>The filesystem is the state.</h2>
       <p>Other tools in this space copy, render, and remember what they own in a record
       beside your configs. When that record disagrees with the disk, your hand-edits lose.
-      agentstow keeps no record at all, because ownership is legible from the disk
+      agent-sync keeps no record at all, because ownership is legible from the disk
       itself.</p>
       <dl class="positions three">
         <div>
@@ -169,7 +169,7 @@ trust_level = "trusted"</pre>
       <p class="eyebrow">Restraint</p>
       <h2>Variants are a feature, not a conflict.</h2>
       <div class="split">
-<pre><span class="c">$ agentstow status</span>
+<pre><span class="c">$ agent-sync status</span>
 claude (.claude/skills)  12 linked
   variant           plannotator — left alone
   variant-identical old-notes — identical to the
@@ -181,12 +181,12 @@ mcp (mcp.json)
   foreign           xapi → claude — not in the
                     Commons — left alone
 
-2 items need attention — run `agentstow sync`.</pre>
+2 items need attention — run `agent-sync sync`.</pre>
         <div>
           <p>A real directory shadowing a Commons entry is a <strong>Variant</strong>:
           deliberate, preserved forever, and flagged only when its contents are identical
           to the Commons copy, so you can dedupe on purpose rather than by accident.</p>
-          <p>Anything agentstow did not write is Foreign — reported, never modified. Exit
+          <p>Anything agent-sync did not write is Foreign — reported, never modified. Exit
           codes are the contract: <code>0</code> clean, <code>1</code> error,
           <code>2</code> something to do.</p>
         </div>
@@ -224,10 +224,10 @@ mcp (mcp.json)
           </tbody>
         </table>
         <caption>What each agent supports, and by which mechanism. <em>none</em> means that
-        agent has no such config surface — not that agentstow skipped it. <em>native</em>
+        agent has no such config surface — not that agent-sync skipped it. <em>native</em>
         means the agent reads the Commons itself, so no links are written — and where Codex
         or Cursor still reads its old fan-out directory beside the Commons,
-        <code>sync</code> prunes agentstow's now-duplicate links from it.</caption>
+        <code>sync</code> prunes agent-sync's now-duplicate links from it.</caption>
       </div>
     </div>
   </section>
@@ -236,7 +236,7 @@ mcp (mcp.json)
     <div class="shell">
       <p class="eyebrow">Safety</p>
       <h2>Safe to run before you trust it.</h2>
-<pre><span class="c">$ agentstow sync --dry-run</span>
+<pre><span class="c">$ agent-sync sync --dry-run</span>
 dry run — no changes will be made
 
 claude (.claude/skills)
@@ -282,25 +282,25 @@ mcp (mcp.json)
       <p class="eyebrow">Install</p>
       <h2>macOS, Linux and Windows.</h2>
 <pre><span class="c"># prebuilt binary — no toolchain, no postinstall script</span>
-npm install -g agentstow
+npm install -g agent-sync-sh
 
 <span class="c"># or the same binary as a wheel</span>
-pip install agentstow
+pip install agent-sync-sh
 
 <span class="c"># or from source, needs Rust 1.97+</span>
-cargo install agentstow
+cargo install agent-sync-sh
 
 <span class="c"># or try it first, without installing anything</span>
-npx agentstow doctor
-uvx agentstow doctor
+npx agent-sync-sh doctor
+uvx agent-sync-sh doctor
 
 <span class="c"># or on macOS and Linux, from the tap in the repo itself</span>
-brew tap agentstow/tap https://github.com/agentstow/agentstow
-brew trust agentstow/tap
-brew install agentstow
+brew tap agent-sync-sh/tap https://github.com/agent-sync-sh/agent-sync
+brew trust agent-sync-sh/tap
+brew install agent-sync
 
 <span class="c"># then, on a machine you have already been using</span>
-agentstow init</pre>
+agent-sync init</pre>
       <p><code>init</code> creates the Commons and then tells you what of your existing
       config it could take over — per family, with the command that would do it.</p>
     </div>
@@ -315,7 +315,7 @@ agentstow init</pre>
         version it with git or chezmoi. Building sync would mean building conflict
         resolution, and git already won that.</p>
         <p><strong>No memory sync.</strong> Agent memory is not a defined artifact, and
-        agentstow will not pretend otherwise.</p>
+        agent-sync will not pretend otherwise.</p>
         <p><strong>No GUI</strong>, no daemon, no file watcher, no undo — refusals come
         before writes, and <code>sync</code> and <code>adopt</code> preview with
         <code>--dry-run</code>. It does not install skills — it fans out whatever is in
@@ -329,13 +329,13 @@ agentstow init</pre>
 
 <footer>
   <div class="shell">
-    <p class="closer">If agentstow disappeared tomorrow, your configs would still be
+    <p class="closer">If agent-sync disappeared tomorrow, your configs would still be
     ordinary files in <code>~/.agents/</code>, and every link would still point at
     them.</p>
     <nav>
       <a href="/docs">Documentation</a>
-      <a href="https://github.com/agentstow/agentstow">GitHub</a>
-      <a href="https://github.com/agentstow/agentstow/blob/main/LICENSE">MIT</a>
+      <a href="https://github.com/agent-sync-sh/agent-sync">GitHub</a>
+      <a href="https://github.com/agent-sync-sh/agent-sync/blob/main/LICENSE">MIT</a>
     </nav>
   </div>
 </footer>

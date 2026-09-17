@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://agentstow.dev/sitemap.xml
+Sitemap: https://agent-sync.sh/sitemap.xml

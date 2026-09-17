@@ -28,20 +28,20 @@ There is no state file. There never will be. The filesystem is the state.
 ## Install
 
 ```sh
-npm install -g agent-sync      # prebuilt binary, macOS, Linux and Windows, no toolchain
-pip install agent-sync         # the same binary, shipped as a wheel
-cargo install agent-sync       # from source, needs Rust 1.97+
+npm install -g agent-sync-sh   # prebuilt binary, macOS, Linux and Windows, no toolchain
+pip install agent-sync-sh      # the same binary, shipped as a wheel
+cargo install agent-sync-sh    # from source, needs Rust 1.97+
 
-npx agent-sync doctor          # or try it first, without installing anything
-uvx agent-sync doctor          # the same, if you reach for uv rather than npm
+npx agent-sync-sh doctor       # or try it first, without installing anything
+uvx agent-sync-sh doctor       # the same, if you reach for uv rather than npm
 ```
 
 On macOS and Linux there is also a Homebrew tap. It lives in this repository rather
 than a separate `homebrew-agent-sync` one, so it is tapped by URL:
 
 ```sh
-brew tap agent-sync/tap https://github.com/agent-sync/agent-sync
-brew trust agent-sync/tap      # Homebrew 6 refuses to load untrusted third-party taps
+brew tap agent-sync-sh/tap https://github.com/agent-sync-sh/agent-sync
+brew trust agent-sync-sh/tap   # Homebrew 6 refuses to load untrusted third-party taps
 brew install agent-sync
 ```
 

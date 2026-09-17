@@ -1,4 +1,4 @@
-/* agentstow.dev
+/* agent-sync.sh
  *
  * Structured after vercel.com/design.md — precise, calm, evidence-led,
  * restrained. Three deliberate departures, all because that document is written
@@ -13,7 +13,7 @@
  *     one. Accent is spent on exactly four things — link text, the one primary
  *     action, the focus ring, and the hairline on the mark — and never on
  *     backgrounds, table cells, or state.
- *   - agentstow has no web UI to inherit a palette from, so the ramp is defined
+ *   - agent-sync has no web UI to inherit a palette from, so the ramp is defined
  *     here and the favicon and og artwork derive from it.
  *
  * Hard rejects honoured literally: no gradients, gradient text, glows, blobs,

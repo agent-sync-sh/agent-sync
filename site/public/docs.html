@@ -3,24 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Documentation — agentstow</title>
-<meta name="description" content="How agentstow works: the Commons layout, the six config families and their per-agent mechanisms, the three ownership identities, the CLI surface, agentstow.toml, and the vocabulary.">
-<link rel="canonical" href="https://agentstow.dev/docs">
-<link rel="alternate" hreflang="en" href="https://agentstow.dev/docs">
-<link rel="alternate" hreflang="zh-Hans" href="https://agentstow.dev/zh/docs">
-<link rel="alternate" hreflang="x-default" href="https://agentstow.dev/docs">
+<title>Documentation — agent-sync</title>
+<meta name="description" content="How agent-sync works: the Commons layout, the six config families and their per-agent mechanisms, the three ownership identities, the CLI surface, agent-sync.toml, and the vocabulary.">
+<link rel="canonical" href="https://agent-sync.sh/docs">
+<link rel="alternate" hreflang="en" href="https://agent-sync.sh/docs">
+<link rel="alternate" hreflang="zh-Hans" href="https://agent-sync.sh/zh/docs">
+<link rel="alternate" hreflang="x-default" href="https://agent-sync.sh/docs">
 <link rel="stylesheet" href="/styles.css">
 <link rel="icon" href="/favicon-32.png" sizes="32x32">
 <link rel="icon" href="/favicon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script src="/lang.js"></script>
 <meta property="og:type" content="article">
-<meta property="og:url" content="https://agentstow.dev/docs">
-<meta property="og:title" content="Documentation — agentstow">
+<meta property="og:url" content="https://agent-sync.sh/docs">
+<meta property="og:title" content="Documentation — agent-sync">
 <meta property="og:description" content="The Commons layout, six config families, three ownership identities, and the full CLI surface.">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="zh_CN">
-<meta property="og:image" content="https://agentstow.dev/og.png">
+<meta property="og:image" content="https://agent-sync.sh/og.png">
 <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
@@ -36,11 +36,11 @@
         <circle cx="16" cy="10" r="2.1" stroke="currentColor" stroke-width="1.25"/>
         <circle cx="16" cy="16" r="2.1" stroke="currentColor" stroke-width="1.25"/>
       </svg>
-      agentstow
+      agent-sync
     </a>
     <nav>
       <a href="/docs">Docs</a>
-      <a href="https://github.com/agentstow/agentstow">GitHub</a>
+      <a href="https://github.com/agent-sync-sh/agent-sync">GitHub</a>
       <a href="/zh/docs?lang=zh" lang="zh-Hans" hreflang="zh-Hans">简体中文</a>
     </nav>
   </div>
@@ -51,7 +51,7 @@
   <section>
     <div class="shell">
       <h1>Documentation</h1>
-      <p class="lede">agentstow keeps one copy of every config you share and puts it where
+      <p class="lede">agent-sync keeps one copy of every config you share and puts it where
       each agent expects to find it. This page is the reference: what lives in the Commons
       — the canonical <code>~/.agents/</code> directory — how each family reaches each
       agent, and what the tool will and will not touch.</p>
@@ -64,7 +64,7 @@
         <li><a href="#status">Reading status</a></li>
         <li><a href="#mcp">MCP servers</a></li>
         <li><a href="#cli">CLI</a></li>
-        <li><a href="#config">agentstow.toml</a></li>
+        <li><a href="#config">agent-sync.toml</a></li>
         <li><a href="#dotfiles">Many machines</a></li>
         <li><a href="#concepts">Vocabulary</a></li>
       </ul>
@@ -76,22 +76,22 @@
       <h2>Install</h2>
 <pre><span class="c"># prebuilt binary for macOS, Linux and Windows — no toolchain, no postinstall script,</span>
 <span class="c"># so it installs offline and inside a sandboxed CI</span>
-npm install -g agentstow
+npm install -g agent-sync-sh
 
 <span class="c"># or the same binary as a PyPI wheel — no Python code, just the binary</span>
-pip install agentstow
+pip install agent-sync-sh
 
 <span class="c"># or build from source — needs Rust 1.97 or newer</span>
-cargo install agentstow
+cargo install agent-sync-sh
 
 <span class="c"># or try it first, without installing anything</span>
-npx agentstow doctor
-uvx agentstow doctor
+npx agent-sync-sh doctor
+uvx agent-sync-sh doctor
 
 <span class="c"># or on macOS and Linux, from the Homebrew tap in the repo itself</span>
-brew tap agentstow/tap https://github.com/agentstow/agentstow
-brew trust agentstow/tap
-brew install agentstow</pre>
+brew tap agent-sync-sh/tap https://github.com/agent-sync-sh/agent-sync
+brew trust agent-sync-sh/tap
+brew install agent-sync</pre>
       <p>The npm package is a small launcher; the real binary ships in one platform
       package per target, declared as optional dependencies so npm installs exactly the one
       matching your machine. On a platform with no prebuilt binary you get a message naming
@@ -102,16 +102,16 @@ brew install agentstow</pre>
       creating a Commons.</p>
       <p>The PyPI wheels contain no Python code at all — each one carries the same
       compiled binary in the wheel's <code>scripts/</code> directory, which is how
-      <code>pip install</code> and <code>uvx</code> put a working <code>agentstow</code> on
+      <code>pip install</code> and <code>uvx</code> put a working <code>agent-sync</code> on
       PATH with no interpreter shim in between. There is one wheel per platform, so pip
       resolves the right binary the same way npm picks the right optional dependency.
       On a platform with no prebuilt wheel you still get a clean install and a command
       that names your platform and points at <code>cargo install</code>, rather than
       pip's bare <em>no matching distribution found</em> — the same courtesy the npm
       launcher extends.</p>
-      <p>The Homebrew tap lives in the agentstow repository itself rather than a separate
-      <code>homebrew-agentstow</code> one, which is why it is tapped by URL rather than by
-      the short <code>brew tap agentstow/agentstow</code> form. It installs the same
+      <p>The Homebrew tap lives in the agent-sync repository itself rather than a separate
+      <code>homebrew-agent-sync</code> one, which is why it is tapped by URL rather than by
+      the short <code>brew tap agent-sync-sh/agent-sync</code> form. It installs the same
       prebuilt binary the release attaches to its GitHub Release, verified against the
       published <code>SHA256SUMS.txt</code>; the formula is regenerated by CI on every tag,
       so it can only ever point at assets that exist. Homebrew 6 refuses to load a
@@ -127,7 +127,7 @@ brew install agentstow</pre>
   <section id="start">
     <div class="shell">
       <h2>First five minutes</h2>
-<pre><span class="c">$ agentstow init</span>
+<pre><span class="c">$ agent-sync init</span>
 Created the Commons at ~/.agents
   skills/
   commands/
@@ -139,21 +139,21 @@ Found 6 agents: claude, codex, opencode, pi, oh-my-pi, gemini
   claude/skills/my-workflow
   claude/skills/review-loop
   pi/agent/skills/notes
-  take one with `agentstow adopt &lt;path&gt;`
+  take one with `agent-sync adopt &lt;path&gt;`
 
 4 MCP servers not in the Commons: serena, xapi, node_repl, computer-use
-  take them all with `agentstow mcp adopt --all`</pre>
+  take them all with `agent-sync mcp adopt --all`</pre>
       <p><code>init</code> answers the question a used machine actually poses: not what
-      agentstow does, but what of your existing config it could take over. Adopt what you
+      agent-sync does, but what of your existing config it could take over. Adopt what you
       want shared, then sync.</p>
-<pre><span class="c">$ agentstow adopt ~/.claude/skills/my-workflow</span>
+<pre><span class="c">$ agent-sync adopt ~/.claude/skills/my-workflow</span>
 adopted my-workflow from claude into the Commons (skills)
 
-<span class="c">$ agentstow mcp adopt --all</span>
+<span class="c">$ agent-sync mcp adopt --all</span>
 adopted serena from claude
-  scoped to claude — remove the allowlist in agentstow.toml to share it
+  scoped to claude — remove the allowlist in agent-sync.toml to share it
 
-<span class="c">$ agentstow sync</span></pre>
+<span class="c">$ agent-sync sync</span></pre>
       <p><code>adopt</code> is one verb; where the path lives picks the mechanic. A real
       config inside an agent's directory is <strong>moved</strong> into the Commons with a
       link left behind; a path inside a git repo becomes a <strong>Sourced</strong> entry —
@@ -161,7 +161,7 @@ adopted serena from claude
       <strong>copied</strong> in. <code>--dry-run</code> names the mechanic before anything
       moves. If the Commons already holds that name with identical contents it collapses
       the duplicate into a link; if the contents differ it refuses and explains, because
-      choosing which side to discard is not agentstow's call.</p>
+      choosing which side to discard is not agent-sync's call.</p>
     </div>
   </section>
 
@@ -176,12 +176,12 @@ adopted serena from claude
 ├── mcp.json               the standard mcpServers shape
 └── hooks/&lt;Event&gt;.toml     [[hook]] entries: command, matcher, timeout</pre>
       <p>The Commons lives at <code>~/.agents/</code>. It holds ecosystem-standard content
-      only — nothing agentstow-specific lives there, which is what lets other tools read it
+      only — nothing agent-sync-specific lives there, which is what lets other tools read it
       directly, as opencode, oh-my-pi and Hermes already do. And it is exactly that — a
-      commons, not agentstow's alone: other tools keep their own files there, and
-      <code>doctor</code> names entries that aren't agentstow's and leaves them be. Tool
-      configuration lives separately in <code>$XDG_CONFIG_HOME/agentstow/</code> (default
-      <code>~/.config/agentstow/</code>).</p>
+      commons, not agent-sync's alone: other tools keep their own files there, and
+      <code>doctor</code> names entries that aren't agent-sync's and leaves them be. Tool
+      configuration lives separately in <code>$XDG_CONFIG_HOME/agent-sync/</code> (default
+      <code>~/.config/agent-sync/</code>).</p>
     </div>
   </section>
 
@@ -200,14 +200,14 @@ adopted serena from claude
         <dd>Three mechanisms, because agents differ in kind. A plain <em>symlink</em> where
         the whole file can be ours (Codex, opencode, pi, oh-my-pi, Gemini CLI, Windsurf).
         An <em>import line</em>
-        for Claude, whose <code>CLAUDE.md</code> holds your own content, so agentstow only
+        for Claude, whose <code>CLAUDE.md</code> holds your own content, so agent-sync only
         ensures <code>@~/.agents/AGENTS.md</code> is present — additive and idempotent. A
         <em>rules-dir link</em> for Roo, which globs a directory.</dd>
         <dt>MCP servers</dt>
         <dd>Rendered into each agent's dialect and key-merged. See below.</dd>
         <dt>Hooks</dt>
         <dd>Command-hooks declared once in <code>hooks/&lt;Event&gt;.toml</code> and merged
-        into Claude, Codex and Gemini by <em>command string</em>: agentstow owns exactly the
+        into Claude, Codex and Gemini by <em>command string</em>: agent-sync owns exactly the
         array elements whose command matches a Commons hook, and other tools' hooks in the
         same event array survive untouched. Codex trust hashes are <strong>never
         written</strong> — approving code execution stays your decision.</dd>
@@ -223,7 +223,7 @@ adopted serena from claude
   <section id="ownership">
     <div class="shell">
       <h2>Ownership, without a state file</h2>
-      <p>Everything agentstow writes must be recognisable as its own on a later run, with
+      <p>Everything agent-sync writes must be recognisable as its own on a later run, with
       no database to consult. Three identities cover every mechanism.</p>
       <dl class="terms">
         <dt>Link identity</dt>
@@ -234,10 +234,10 @@ adopted serena from claude
         Commons; for hooks the command string is the name. Unknown names in the same file
         are Foreign. One consequence is deliberate: <code>sync</code> never <em>deletes</em>
         an MCP server, because a name that vanished from the Commons cannot be told apart
-        from one you added by hand. Removal is <code>agentstow mcp remove</code>.</dd>
+        from one you added by hand. Removal is <code>agent-sync mcp remove</code>.</dd>
         <dt>Marker identity</dt>
         <dd>A wholly generated file carries one comment line saying so. That is what makes
-        pruning safe: removing a marked file returns the machine to a state agentstow
+        pruning safe: removing a marked file returns the machine to a state agent-sync
         created. An unmarked file at the same path was written by somebody else.</dd>
       </dl>
     </div>
@@ -257,7 +257,7 @@ adopted serena from claude
             <tr><th scope="row">variant</th><td>A real file or directory shadowing a Commons entry, on purpose. Preserved.</td></tr>
             <tr><th scope="row">variant-identical</th><td>Same, but byte-identical to the Commons copy — a duplicate you can collapse.</td></tr>
             <tr><th scope="row">foreign</th><td>Not ours. Reported, never modified.</td></tr>
-            <tr><th scope="row">conflict</th><td>Another tool owns a file agentstow would otherwise write.</td></tr>
+            <tr><th scope="row">conflict</th><td>Another tool owns a file agent-sync would otherwise write.</td></tr>
           </tbody>
         </table>
         <caption>Exit codes: <code>0</code> clean, <code>1</code> error, <code>2</code>
@@ -275,7 +275,7 @@ adopted serena from claude
       <code>local</code>/<code>remote</code> with the command flattened into one array and
       <code>env</code> renamed <code>environment</code>; Gemini distinguishes SSE from
       streamable HTTP by which URL key it uses; Windsurf calls it <code>serverUrl</code>.</p>
-<pre><span class="c"># ~/.config/agentstow/agentstow.toml</span>
+<pre><span class="c"># ~/.config/agent-sync/agent-sync.toml</span>
 [mcp.serena]
 agents = ["claude", "codex"]      <span class="c"># default: every capable agent</span>
 
@@ -283,13 +283,13 @@ agents = ["claude", "codex"]      <span class="c"># default: every capable agent
 startup_timeout_sec = 120         <span class="c"># reaches Codex alone</span></pre>
       <p>Secrets are written as <code>${env:VAR}</code> in the Commons, resolved from the
       environment at sync, and redacted from every line of output — so the Commons stays
-      committable. If a resolved secret would land in a file others can read, agentstow says
+      committable. If a resolved secret would land in a file others can read, agent-sync says
       so.</p>
       <p><code>mcp disable</code> parks a server without retyping it: the definition and
       its rules stay in the Commons, renders are removed everywhere, and <code>mcp
       enable</code> restores them.</p>
       <div class="note">
-        <p><code>agentstow mcp adopt claude/serena</code> reverse-translates an existing
+        <p><code>agent-sync mcp adopt claude/serena</code> reverse-translates an existing
         server into the Commons, turning agent-specific knobs into Tweaks. It proves the
         result first: if re-rendering it would not reproduce what you already have, it
         refuses rather than reporting a success that the next sync would undo.</p>
@@ -309,7 +309,7 @@ startup_timeout_sec = 120         <span class="c"># reaches Codex alone</span></
             <tr><th scope="row">sync</th><td>Fan the Commons out to every installed agent — planned in full before the first write. <code>--dry-run</code> prints the plan.</td></tr>
             <tr><th scope="row">status</th><td>What is in sync, what is not, what is not ours. <code>--json</code>.</td></tr>
             <tr><th scope="row">doctor</th><td>Installed agents, Commons hygiene, Sourced entries with missing clones marked, and <code>.agents</code> Protocol surfaces attributed by name.</td></tr>
-            <tr><th scope="row">revert &lt;agent&gt;</th><td>Remove everything agentstow put into one target — links, merged MCP and hook keys, rendered files. Refuses until the target is disabled.</td></tr>
+            <tr><th scope="row">revert &lt;agent&gt;</th><td>Remove everything agent-sync put into one target — links, merged MCP and hook keys, rendered files. Refuses until the target is disabled.</td></tr>
             <tr><th scope="row">mcp list</th><td>Commons servers and their state in every agent. <code>--json</code>.</td></tr>
             <tr><th scope="row">mcp adopt</th><td><code>&lt;agent&gt;/&lt;server&gt;</code>, or <code>--all</code>.</td></tr>
             <tr><th scope="row">mcp remove</th><td>Delete a server from the Commons and from every agent.</td></tr>
@@ -322,12 +322,12 @@ startup_timeout_sec = 120         <span class="c"># reaches Codex alone</span></
 
   <section id="config">
     <div class="shell">
-      <h2>agentstow.toml</h2>
-      <p>Optional, in <code>$XDG_CONFIG_HOME/agentstow/</code> (default
-      <code>~/.config/agentstow/agentstow.toml</code>). Absent means defaults. It never
+      <h2>agent-sync.toml</h2>
+      <p>Optional, in <code>$XDG_CONFIG_HOME/agent-sync/</code> (default
+      <code>~/.config/agent-sync/agent-sync.toml</code>). Absent means defaults. It never
       lives in the Commons, so the Commons stays ecosystem-standard content only. The lock
-      — agentstow's only machine state — lives in <code>$XDG_STATE_HOME/agentstow/</code>
-      (default <code>~/.local/state/agentstow/</code>).</p>
+      — agent-sync's only machine state — lives in <code>$XDG_STATE_HOME/agent-sync/</code>
+      (default <code>~/.local/state/agent-sync/</code>).</p>
 <pre>[targets]
 cursor = false                    <span class="c"># leave this agent alone entirely</span>
 
@@ -343,15 +343,15 @@ agents = ["codex"]</pre>
   <section id="dotfiles">
     <div class="shell">
       <h2>Many machines</h2>
-      <p>agentstow does not sync across machines, deliberately — that would mean building
+      <p>agent-sync does not sync across machines, deliberately — that would mean building
       conflict resolution, and git already won that argument. The Commons is an ordinary
       directory, so version it:</p>
 <pre><span class="c"># as a git repo</span>
 cd ~/.agents &amp;&amp; git init &amp;&amp; git add . &amp;&amp; git commit -m "my agent config"
 
 <span class="c"># or with chezmoi</span>
-chezmoi add ~/.agents ~/.config/agentstow</pre>
-      <p>On the second machine, clone it and run <code>agentstow sync</code>.</p>
+chezmoi add ~/.agents ~/.config/agent-sync</pre>
+      <p>On the second machine, clone it and run <code>agent-sync sync</code>.</p>
     </div>
   </section>
 
@@ -359,22 +359,22 @@ chezmoi add ~/.agents ~/.config/agentstow</pre>
     <div class="shell">
       <h2>Vocabulary</h2>
       <dl class="terms">
-        <dt>Commons</dt><dd>The canonical directory <code>~/.agents/</code> holding the single real copy of everything agentstow syncs — a shared commons other tools also live in; agentstow is a tenant, never the landlord.</dd>
+        <dt>Commons</dt><dd>The canonical directory <code>~/.agents/</code> holding the single real copy of everything agent-sync syncs — a shared commons other tools also live in; agent-sync is a tenant, never the landlord.</dd>
         <dt>Target</dt><dd>One agent's config surface that receives fan-out.</dd>
         <dt>Fan-out</dt><dd>One Commons entry materialised into every Target as a symlink.</dd>
         <dt>Native</dt><dd>An agent that reads the Commons directly and therefore needs no fan-out.</dd>
         <dt>Variant</dt><dd>A real file or directory in a Target that intentionally shadows the Commons copy for that agent alone. First-class and preserved, never clobbered.</dd>
-        <dt>Adopt</dt><dd>Taking a path under agentstow's management with one verb; where the path lives picks the mechanic — absorbed into the Commons with a link left behind, made a Sourced entry when it lives in a git repo, copied in otherwise.</dd>
+        <dt>Adopt</dt><dd>Taking a path under agent-sync's management with one verb; where the path lives picks the mechanic — absorbed into the Commons with a link left behind, made a Sourced entry when it lives in a git repo, copied in otherwise.</dd>
         <dt>Sourced</dt><dd>A Commons entry that is a symlink out to its Source — an outside path, typically in a git repo, holding the content's single real copy. The Commons keeps the pointer; the Source keeps the truth.</dd>
-        <dt>Revert</dt><dd>Removing everything agentstow put into one Target, as a deliberate offboarding act. Refused while the target is still enabled, so a later sync cannot redo what revert undid.</dd>
-        <dt>Foreign</dt><dd>A link, file or server entry in a Target that agentstow does not own. Never touched, listed by <code>status</code>.</dd>
-        <dt>Conflict</dt><dd>A Foreign <em>file</em> occupying a destination agentstow would otherwise write — reported with the remedy named, never overwritten.</dd>
+        <dt>Revert</dt><dd>Removing everything agent-sync put into one Target, as a deliberate offboarding act. Refused while the target is still enabled, so a later sync cannot redo what revert undid.</dd>
+        <dt>Foreign</dt><dd>A link, file or server entry in a Target that agent-sync does not own. Never touched, listed by <code>status</code>.</dd>
+        <dt>Conflict</dt><dd>A Foreign <em>file</em> occupying a destination agent-sync would otherwise write — reported with the remedy named, never overwritten.</dd>
         <dt>Render</dt><dd>Translating a Commons entry into one agent's native format and merging it into that agent's config file.</dd>
-        <dt>Managed</dt><dd>An entry whose name appears in the Commons: agentstow owns it in every targeted config, and the Commons wins.</dd>
+        <dt>Managed</dt><dd>An entry whose name appears in the Commons: agent-sync owns it in every targeted config, and the Commons wins.</dd>
         <dt>Disabled</dt><dd>A Managed server whose Commons definition carries <code>"disabled": true</code> — defined but rendered nowhere, so enabling restores it everywhere without retyping.</dd>
-        <dt>Protocol surface</dt><dd>A <code>.agents</code> Protocol path at the Commons root — <code>tasks/</code>, <code>memories/</code>, <code>models.json</code>, <code>system-prompt.md</code> — that <code>doctor</code> attributes by name and agentstow never touches.</dd>
-        <dt>Tweak</dt><dd>A per-agent addition merged into one agent's rendering, declared in <code>agentstow.toml</code>, never in the Commons.</dd>
-        <dt>Marker</dt><dd>The one-line comment in every generated file, making it recognisable as agentstow's without a state file.</dd>
+        <dt>Protocol surface</dt><dd>A <code>.agents</code> Protocol path at the Commons root — <code>tasks/</code>, <code>memories/</code>, <code>models.json</code>, <code>system-prompt.md</code> — that <code>doctor</code> attributes by name and agent-sync never touches.</dd>
+        <dt>Tweak</dt><dd>A per-agent addition merged into one agent's rendering, declared in <code>agent-sync.toml</code>, never in the Commons.</dd>
+        <dt>Marker</dt><dd>The one-line comment in every generated file, making it recognisable as agent-sync's without a state file.</dd>
       </dl>
     </div>
   </section>
@@ -385,8 +385,8 @@ chezmoi add ~/.agents ~/.config/agentstow</pre>
   <div class="shell">
     <nav>
       <a href="/">Home</a>
-      <a href="https://github.com/agentstow/agentstow">GitHub</a>
-      <a href="https://github.com/agentstow/agentstow/blob/main/LICENSE">MIT</a>
+      <a href="https://github.com/agent-sync-sh/agent-sync">GitHub</a>
+      <a href="https://github.com/agent-sync-sh/agent-sync/blob/main/LICENSE">MIT</a>
     </nav>
   </div>
 </footer>

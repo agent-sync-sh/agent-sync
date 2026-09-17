@@ -3,24 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>文档 — agentstow</title>
-<meta name="description" content="agentstow 的工作原理：Commons（共享配置区）的目录结构、六大配置族及其在各智能体上的机制、三种归属身份、CLI 命令面、agentstow.toml，以及词汇表。">
-<link rel="canonical" href="https://agentstow.dev/zh/docs">
-<link rel="alternate" hreflang="en" href="https://agentstow.dev/docs">
-<link rel="alternate" hreflang="zh-Hans" href="https://agentstow.dev/zh/docs">
-<link rel="alternate" hreflang="x-default" href="https://agentstow.dev/docs">
+<title>文档 — agent-sync</title>
+<meta name="description" content="agent-sync 的工作原理：Commons（共享配置区）的目录结构、六大配置族及其在各智能体上的机制、三种归属身份、CLI 命令面、agent-sync.toml，以及词汇表。">
+<link rel="canonical" href="https://agent-sync.sh/zh/docs">
+<link rel="alternate" hreflang="en" href="https://agent-sync.sh/docs">
+<link rel="alternate" hreflang="zh-Hans" href="https://agent-sync.sh/zh/docs">
+<link rel="alternate" hreflang="x-default" href="https://agent-sync.sh/docs">
 <link rel="stylesheet" href="/styles.css">
 <link rel="icon" href="/favicon-32.png" sizes="32x32">
 <link rel="icon" href="/favicon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script src="/lang.js"></script>
 <meta property="og:type" content="article">
-<meta property="og:url" content="https://agentstow.dev/zh/docs">
-<meta property="og:title" content="文档 — agentstow">
+<meta property="og:url" content="https://agent-sync.sh/zh/docs">
+<meta property="og:title" content="文档 — agent-sync">
 <meta property="og:description" content="Commons 目录结构、六大配置族、三种归属身份，以及完整的 CLI 命令面。">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="en_US">
-<meta property="og:image" content="https://agentstow.dev/og.png">
+<meta property="og:image" content="https://agent-sync.sh/og.png">
 <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
@@ -36,11 +36,11 @@
         <circle cx="16" cy="10" r="2.1" stroke="currentColor" stroke-width="1.25"/>
         <circle cx="16" cy="16" r="2.1" stroke="currentColor" stroke-width="1.25"/>
       </svg>
-      agentstow
+      agent-sync
     </a>
     <nav>
       <a href="/zh/docs">文档</a>
-      <a href="https://github.com/agentstow/agentstow">GitHub</a>
+      <a href="https://github.com/agent-sync-sh/agent-sync">GitHub</a>
       <a href="/docs?lang=en" lang="en" hreflang="en">English</a>
     </nav>
   </div>
@@ -51,7 +51,7 @@
   <section>
     <div class="shell">
       <h1>文档</h1>
-      <p class="lede">agentstow 为你共享的每份配置只保留一份副本，并把它放到每个智能体期望的位置。本页是参考手册：Commons（共享配置区）——规范的 <code>~/.agents/</code> 目录——里放什么、每个配置族如何到达每个智能体，以及这个工具会碰什么、不会碰什么。</p>
+      <p class="lede">agent-sync 为你共享的每份配置只保留一份副本，并把它放到每个智能体期望的位置。本页是参考手册：Commons（共享配置区）——规范的 <code>~/.agents/</code> 目录——里放什么、每个配置族如何到达每个智能体，以及这个工具会碰什么、不会碰什么。</p>
       <ul class="toc">
         <li><a href="#install">安装</a></li>
         <li><a href="#start">最初五分钟</a></li>
@@ -61,7 +61,7 @@
         <li><a href="#status">读懂 status</a></li>
         <li><a href="#mcp">MCP 服务器</a></li>
         <li><a href="#cli">CLI</a></li>
-        <li><a href="#config">agentstow.toml</a></li>
+        <li><a href="#config">agent-sync.toml</a></li>
         <li><a href="#dotfiles">多台机器</a></li>
         <li><a href="#concepts">词汇表</a></li>
       </ul>
@@ -73,25 +73,25 @@
       <h2>安装</h2>
 <pre><span class="c"># macOS、Linux 和 Windows 的预编译二进制 — 无需工具链，没有 postinstall 脚本，</span>
 <span class="c"># 因此可以离线安装，也可以在沙箱化的 CI 里安装</span>
-npm install -g agentstow
+npm install -g agent-sync-sh
 
 <span class="c"># 或以 PyPI wheel 形式安装同一个二进制 — 不含任何 Python 代码</span>
-pip install agentstow
+pip install agent-sync-sh
 
 <span class="c"># 或从源码构建 — 需要 Rust 1.97 或更新版本</span>
-cargo install agentstow
+cargo install agent-sync-sh
 
 <span class="c"># 或者先试用，无需安装</span>
-npx agentstow doctor
-uvx agentstow doctor
+npx agent-sync-sh doctor
+uvx agent-sync-sh doctor
 
 <span class="c"># 或在 macOS 与 Linux 上，从本仓库自带的 Homebrew tap 安装</span>
-brew tap agentstow/tap https://github.com/agentstow/agentstow
-brew trust agentstow/tap
-brew install agentstow</pre>
+brew tap agent-sync-sh/tap https://github.com/agent-sync-sh/agent-sync
+brew trust agent-sync-sh/tap
+brew install agent-sync</pre>
       <p>npm 包只是一个小启动器；真正的二进制按目标平台各打一个包，声明为可选依赖，npm 只会安装与你机器匹配的那一个。在没有预编译二进制的平台上，你会得到一条说明它找过什么、并指向 <code>cargo install</code> 的消息，而不是文件缺失的崩溃。<code>npx</code> 能直接跑通也是同一个设计的结果：没有 postinstall 步骤，除了二进制本身没有任何东西需要下载；而 <code>doctor</code> 只读——它会报告这台机器上装了哪些智能体，不会创建 Commons。</p>
-      <p>PyPI wheel 里没有任何 Python 代码——每个 wheel 都把同一个编译好的二进制放在 wheel 的 <code>scripts/</code> 目录里，因此 <code>pip install</code> 和 <code>uvx</code> 会直接把可用的 <code>agentstow</code> 放到 PATH 上，中间不经过任何解释器包装层。每个平台一个 wheel，pip 解析正确二进制的方式，和 npm 挑选正确的可选依赖是一样的。在没有预编译 wheel 的平台上，安装依然会正常完成，运行时会得到一条指明你的平台并指向 <code>cargo install</code> 的消息，而不是 pip 那句干巴巴的 <em>no matching distribution found</em>——这与 npm 启动器的处理方式一致。</p>
-      <p>Homebrew tap 就放在 agentstow 仓库自身，而不是另开一个 <code>homebrew-agentstow</code> 仓库，因此需要按 URL 添加，不能用简写的 <code>brew tap agentstow/agentstow</code>。它安装的正是发布流程附加到 GitHub Release 上的预编译二进制，并对照已发布的 <code>SHA256SUMS.txt</code> 校验；formula 由 CI 在每个标签上重新生成，因此它只可能指向真实存在的产物。Homebrew 6 在你信任之前拒绝加载第三方 tap，这就是那行 <code>brew trust</code> 的用途。</p>
+      <p>PyPI wheel 里没有任何 Python 代码——每个 wheel 都把同一个编译好的二进制放在 wheel 的 <code>scripts/</code> 目录里，因此 <code>pip install</code> 和 <code>uvx</code> 会直接把可用的 <code>agent-sync</code> 放到 PATH 上，中间不经过任何解释器包装层。每个平台一个 wheel，pip 解析正确二进制的方式，和 npm 挑选正确的可选依赖是一样的。在没有预编译 wheel 的平台上，安装依然会正常完成，运行时会得到一条指明你的平台并指向 <code>cargo install</code> 的消息，而不是 pip 那句干巴巴的 <em>no matching distribution found</em>——这与 npm 启动器的处理方式一致。</p>
+      <p>Homebrew tap 就放在 agent-sync 仓库自身，而不是另开一个 <code>homebrew-agent-sync</code> 仓库，因此需要按 URL 添加，不能用简写的 <code>brew tap agent-sync-sh/agent-sync</code>。它安装的正是发布流程附加到 GitHub Release 上的预编译二进制，并对照已发布的 <code>SHA256SUMS.txt</code> 校验；formula 由 CI 在每个标签上重新生成，因此它只可能指向真实存在的产物。Homebrew 6 在你信任之前拒绝加载第三方 tap，这就是那行 <code>brew trust</code> 的用途。</p>
       <div class="note warn">
         <p><strong>在 Windows 上</strong>，创建符号链接需要开发者模式（设置 → 系统 → 开发者选项）或提升权限的 shell；<code>sync</code> 在无法创建链接时会明确说明这一点。</p>
       </div>
@@ -101,7 +101,7 @@ brew install agentstow</pre>
   <section id="start">
     <div class="shell">
       <h2>最初五分钟</h2>
-<pre><span class="c">$ agentstow init</span>
+<pre><span class="c">$ agent-sync init</span>
 Created the Commons at ~/.agents
   skills/
   commands/
@@ -113,20 +113,20 @@ Found 6 agents: claude, codex, opencode, pi, oh-my-pi, gemini
   claude/skills/my-workflow
   claude/skills/review-loop
   pi/agent/skills/notes
-  take one with `agentstow adopt &lt;path&gt;`
+  take one with `agent-sync adopt &lt;path&gt;`
 
 4 MCP servers not in the Commons: serena, xapi, node_repl, computer-use
-  take them all with `agentstow mcp adopt --all`</pre>
-      <p><code>init</code> 回答的是一台用过的机器真正关心的问题：不是 agentstow 能做什么，而是你现有配置里有哪些可以被接管。把想共享的纳入（adopt）进来，然后 sync。</p>
-<pre><span class="c">$ agentstow adopt ~/.claude/skills/my-workflow</span>
+  take them all with `agent-sync mcp adopt --all`</pre>
+      <p><code>init</code> 回答的是一台用过的机器真正关心的问题：不是 agent-sync 能做什么，而是你现有配置里有哪些可以被接管。把想共享的纳入（adopt）进来，然后 sync。</p>
+<pre><span class="c">$ agent-sync adopt ~/.claude/skills/my-workflow</span>
 adopted my-workflow from claude into the Commons (skills)
 
-<span class="c">$ agentstow mcp adopt --all</span>
+<span class="c">$ agent-sync mcp adopt --all</span>
 adopted serena from claude
-  scoped to claude — remove the allowlist in agentstow.toml to share it
+  scoped to claude — remove the allowlist in agent-sync.toml to share it
 
-<span class="c">$ agentstow sync</span></pre>
-      <p><code>adopt</code> 是一个动词，路径在哪里决定用哪种机制：智能体目录里的真实配置会被<strong>移入</strong> Commons，原处留下一条链接；git 仓库里的路径会成为一个 <strong>Sourced 条目</strong>——Commons 链接出去，真相仍留在仓库里；其余的都<strong>复制</strong>进来。<code>--dry-run</code> 会在动手之前说出将采用哪种机制。如果 Commons 里已有同名且内容完全相同的条目，它会把重复副本折叠成链接；内容不同则拒绝并说明原因——决定丢弃哪一边不是 agentstow 该做的事。</p>
+<span class="c">$ agent-sync sync</span></pre>
+      <p><code>adopt</code> 是一个动词，路径在哪里决定用哪种机制：智能体目录里的真实配置会被<strong>移入</strong> Commons，原处留下一条链接；git 仓库里的路径会成为一个 <strong>Sourced 条目</strong>——Commons 链接出去，真相仍留在仓库里；其余的都<strong>复制</strong>进来。<code>--dry-run</code> 会在动手之前说出将采用哪种机制。如果 Commons 里已有同名且内容完全相同的条目，它会把重复副本折叠成链接；内容不同则拒绝并说明原因——决定丢弃哪一边不是 agent-sync 该做的事。</p>
     </div>
   </section>
 
@@ -140,7 +140,7 @@ adopted serena from claude
 ├── AGENTS.md              你共享的指令
 ├── mcp.json               标准 mcpServers 结构
 └── hooks/&lt;Event&gt;.toml     [[hook]] 条目：command、matcher、timeout</pre>
-      <p>Commons 位于 <code>~/.agents/</code>。里面只放生态标准内容——没有任何 agentstow 专属的东西，正因如此其他工具才能直接读取它，opencode、oh-my-pi 和 Hermes 已经在这么做。它也正如其名，是一块共享区，不是 agentstow 的私有领地：其他工具也把自己的文件放在这里，<code>doctor</code> 会点名那些不属于 agentstow 的条目，并对它们秋毫无犯。工具自身的配置单独放在 <code>$XDG_CONFIG_HOME/agentstow/</code>（默认 <code>~/.config/agentstow/</code>）。</p>
+      <p>Commons 位于 <code>~/.agents/</code>。里面只放生态标准内容——没有任何 agent-sync 专属的东西，正因如此其他工具才能直接读取它，opencode、oh-my-pi 和 Hermes 已经在这么做。它也正如其名，是一块共享区，不是 agent-sync 的私有领地：其他工具也把自己的文件放在这里，<code>doctor</code> 会点名那些不属于 agent-sync 的条目，并对它们秋毫无犯。工具自身的配置单独放在 <code>$XDG_CONFIG_HOME/agent-sync/</code>（默认 <code>~/.config/agent-sync/</code>）。</p>
     </div>
   </section>
 
@@ -151,11 +151,11 @@ adopted serena from claude
         <dt>技能、命令、子智能体</dt>
         <dd>符号链接扇出。每个条目在每个智能体目录里有一条规范的相对链接；我们的链接悬空即清理；其他一概不动。原生读取 <code>~/.agents/skills</code> 的智能体——Codex、opencode、oh-my-pi、Gemini CLI、Cursor——完全不会得到技能链接；如果 Codex 或 Cursor 还在读取旧的扇出目录，<code>sync</code> 会把我们如今重复的链接从中清理掉。</dd>
         <dt>指令</dt>
-        <dd>三种机制，因为智能体天生不同。整个文件可以归我们时用普通<em>符号链接</em>（Codex、opencode、pi、oh-my-pi、Gemini CLI、Windsurf）。Claude 的 <code>CLAUDE.md</code> 里有你自己的内容，所以用一行<em>导入行</em>——agentstow 只确保 <code>@~/.agents/AGENTS.md</code> 存在，只增不改、幂等。Roo 会通配整个目录，所以用<em>规则目录链接</em>。</dd>
+        <dd>三种机制，因为智能体天生不同。整个文件可以归我们时用普通<em>符号链接</em>（Codex、opencode、pi、oh-my-pi、Gemini CLI、Windsurf）。Claude 的 <code>CLAUDE.md</code> 里有你自己的内容，所以用一行<em>导入行</em>——agent-sync 只确保 <code>@~/.agents/AGENTS.md</code> 存在，只增不改、幂等。Roo 会通配整个目录，所以用<em>规则目录链接</em>。</dd>
         <dt>MCP 服务器</dt>
         <dd>渲染成每个智能体的方言并做键级合并。见下文。</dd>
         <dt>钩子</dt>
-        <dd>命令钩子在 <code>hooks/&lt;Event&gt;.toml</code> 里声明一次，按<em>命令字符串</em>合并进 Claude、Codex 和 Gemini：agentstow 只拥有命令与 Commons 钩子匹配的那些数组元素，同一事件数组里其他工具的钩子原样保留。Codex 的信任哈希<strong>绝不写入</strong>——批准代码执行始终是你的决定。</dd>
+        <dd>命令钩子在 <code>hooks/&lt;Event&gt;.toml</code> 里声明一次，按<em>命令字符串</em>合并进 Claude、Codex 和 Gemini：agent-sync 只拥有命令与 Commons 钩子匹配的那些数组元素，同一事件数组里其他工具的钩子原样保留。Codex 的信任哈希<strong>绝不写入</strong>——批准代码执行始终是你的决定。</dd>
       </dl>
       <div class="note">
         <p>已被其他工具占有的文件——比如 opencode 的 <code>AGENTS.md</code> 里 claude-mem 的样板内容——是一个<strong>冲突（Conflict）</strong>：报告并指出解法，绝不覆盖。</p>
@@ -166,14 +166,14 @@ adopted serena from claude
   <section id="ownership">
     <div class="shell">
       <h2>归属，无需状态文件</h2>
-      <p>agentstow 写下的一切，都必须在之后的运行中不查任何数据库就能认出是自己的。三种身份覆盖所有机制。</p>
+      <p>agent-sync 写下的一切，都必须在之后的运行中不查任何数据库就能认出是自己的。三种身份覆盖所有机制。</p>
       <dl class="terms">
         <dt>链接身份（Link identity）</dt>
         <dd>解析进 Commons 的符号链接是我们的——会被规范化，悬空时被清理。解析到别处的链接是外来项（Foreign），永远不碰。</dd>
         <dt>名字身份（Name identity）</dt>
-        <dd>键级合并进共享文件的条目，名字出现在 Commons 里才是我们的；对钩子而言，命令字符串就是名字。同一文件里陌生的名字都是外来项。有一个后果是刻意保留的：<code>sync</code> 从不<em>删除</em> MCP 服务器，因为从 Commons 里消失的名字与你手工添加的名字无法区分。删除要用 <code>agentstow mcp remove</code>。</dd>
+        <dd>键级合并进共享文件的条目，名字出现在 Commons 里才是我们的；对钩子而言，命令字符串就是名字。同一文件里陌生的名字都是外来项。有一个后果是刻意保留的：<code>sync</code> 从不<em>删除</em> MCP 服务器，因为从 Commons 里消失的名字与你手工添加的名字无法区分。删除要用 <code>agent-sync mcp remove</code>。</dd>
         <dt>标记身份（Marker identity）</dt>
-        <dd>完全生成的文件带有一行注释声明这一点。这正是清理之所以安全的原因：删除带标记的文件，机器回到的是 agentstow 创建过的状态。同一路径上没有标记的文件出自别人之手。</dd>
+        <dd>完全生成的文件带有一行注释声明这一点。这正是清理之所以安全的原因：删除带标记的文件，机器回到的是 agent-sync 创建过的状态。同一路径上没有标记的文件出自别人之手。</dd>
       </dl>
     </div>
   </section>
@@ -192,7 +192,7 @@ adopted serena from claude
             <tr><th scope="row">variant</th><td>有意遮蔽 Commons 条目的真实文件或目录。保留。</td></tr>
             <tr><th scope="row">variant-identical</th><td>同上，但与 Commons 副本字节完全相同——一个可以折叠掉的重复副本。</td></tr>
             <tr><th scope="row">foreign</th><td>不是我们的。只报告，绝不修改。</td></tr>
-            <tr><th scope="row">conflict</th><td>agentstow 本要写入的文件已被另一个工具占有。</td></tr>
+            <tr><th scope="row">conflict</th><td>agent-sync 本要写入的文件已被另一个工具占有。</td></tr>
           </tbody>
         </table>
         <caption>退出码：<code>0</code> 干净，<code>1</code> 出错，<code>2</code> 有可执行的事。内容已分叉的变体和外来项都是尘埃落定的状态，不是待办工作，所以都不会让退出码变成 2。</caption>
@@ -204,16 +204,16 @@ adopted serena from claude
     <div class="shell">
       <h2>MCP 服务器</h2>
       <p>一份标准结构的 <code>mcp.json</code> 被渲染成每个智能体的方言：Codex 用带 <code>http_headers</code> 的 TOML 表；opencode 要 <code>local</code>/<code>remote</code>，命令压平成一个数组，<code>env</code> 改名 <code>environment</code>；Gemini 靠使用哪个 URL 键来区分 SSE 和可流式 HTTP；Windsurf 则叫它 <code>serverUrl</code>。</p>
-<pre><span class="c"># ~/.config/agentstow/agentstow.toml</span>
+<pre><span class="c"># ~/.config/agent-sync/agent-sync.toml</span>
 [mcp.serena]
 agents = ["claude", "codex"]      <span class="c"># 默认：每个具备能力的智能体</span>
 
 [mcp.node_repl.tweaks.codex]
 startup_timeout_sec = 120         <span class="c"># 只作用于 Codex</span></pre>
-      <p>密钥在 Commons 里写作 <code>${env:VAR}</code>，sync 时从环境变量解析，并从每一行输出中脱敏——Commons 因此始终可以提交进版本库。如果解析后的密钥会落进一个他人可读的文件，agentstow 会明说。</p>
+      <p>密钥在 Commons 里写作 <code>${env:VAR}</code>，sync 时从环境变量解析，并从每一行输出中脱敏——Commons 因此始终可以提交进版本库。如果解析后的密钥会落进一个他人可读的文件，agent-sync 会明说。</p>
       <p><code>mcp disable</code> 把服务器停放起来而无需重新输入：定义和它的规则留在 Commons 里，各处的渲染结果被移除，<code>mcp enable</code> 再把它们恢复回来。</p>
       <div class="note">
-        <p><code>agentstow mcp adopt claude/serena</code> 把已有的服务器反向翻译进 Commons，将智能体专属的旋钮变成微调（Tweak）。它会先验证结果：如果重新渲染无法复现你现有的配置，它会拒绝，而不是报告一个下次 sync 就会推翻的成功。</p>
+        <p><code>agent-sync mcp adopt claude/serena</code> 把已有的服务器反向翻译进 Commons，将智能体专属的旋钮变成微调（Tweak）。它会先验证结果：如果重新渲染无法复现你现有的配置，它会拒绝，而不是报告一个下次 sync 就会推翻的成功。</p>
       </div>
     </div>
   </section>
@@ -230,7 +230,7 @@ startup_timeout_sec = 120         <span class="c"># 只作用于 Codex</span></p
             <tr><th scope="row">sync</th><td>把 Commons 扇出到每个已安装的智能体——先完整规划，再落下第一笔写入。<code>--dry-run</code> 打印完整计划。</td></tr>
             <tr><th scope="row">status</th><td>什么已同步、什么没有、什么不是我们的。<code>--json</code>。</td></tr>
             <tr><th scope="row">doctor</th><td>已安装的智能体、Commons 卫生状况、Sourced 条目（缺失的克隆会被标出），以及按名字归属的 <code>.agents</code> 协议面。</td></tr>
-            <tr><th scope="row">revert &lt;agent&gt;</th><td>移除 agentstow 放进某个目标的一切——链接、合并的 MCP 和钩子键、渲染的文件。目标未停用前拒绝执行。</td></tr>
+            <tr><th scope="row">revert &lt;agent&gt;</th><td>移除 agent-sync 放进某个目标的一切——链接、合并的 MCP 和钩子键、渲染的文件。目标未停用前拒绝执行。</td></tr>
             <tr><th scope="row">mcp list</th><td>Commons 里的服务器及其在每个智能体中的状态。<code>--json</code>。</td></tr>
             <tr><th scope="row">mcp adopt</th><td><code>&lt;agent&gt;/&lt;server&gt;</code>，或 <code>--all</code>。</td></tr>
             <tr><th scope="row">mcp remove</th><td>把服务器从 Commons 和每个智能体里删除。</td></tr>
@@ -243,8 +243,8 @@ startup_timeout_sec = 120         <span class="c"># 只作用于 Codex</span></p
 
   <section id="config">
     <div class="shell">
-      <h2>agentstow.toml</h2>
-      <p>可选，位于 <code>$XDG_CONFIG_HOME/agentstow/</code>（默认 <code>~/.config/agentstow/agentstow.toml</code>）。没有就用默认值。它永远不放进 Commons，Commons 因此只含生态标准内容。锁——agentstow 唯一的机器本地状态——位于 <code>$XDG_STATE_HOME/agentstow/</code>（默认 <code>~/.local/state/agentstow/</code>）。</p>
+      <h2>agent-sync.toml</h2>
+      <p>可选，位于 <code>$XDG_CONFIG_HOME/agent-sync/</code>（默认 <code>~/.config/agent-sync/agent-sync.toml</code>）。没有就用默认值。它永远不放进 Commons，Commons 因此只含生态标准内容。锁——agent-sync 唯一的机器本地状态——位于 <code>$XDG_STATE_HOME/agent-sync/</code>（默认 <code>~/.local/state/agent-sync/</code>）。</p>
 <pre>[targets]
 cursor = false                    <span class="c"># 完全不碰这个智能体</span>
 
@@ -260,13 +260,13 @@ agents = ["codex"]</pre>
   <section id="dotfiles">
     <div class="shell">
       <h2>多台机器</h2>
-      <p>agentstow 刻意不做跨机器同步——那意味着要自建冲突解决，而这场争论 git 早已赢了。Commons 是一个普通目录，用版本管理就好：</p>
+      <p>agent-sync 刻意不做跨机器同步——那意味着要自建冲突解决，而这场争论 git 早已赢了。Commons 是一个普通目录，用版本管理就好：</p>
 <pre><span class="c"># 作为 git 仓库</span>
 cd ~/.agents &amp;&amp; git init &amp;&amp; git add . &amp;&amp; git commit -m "my agent config"
 
 <span class="c"># 或使用 chezmoi</span>
-chezmoi add ~/.agents ~/.config/agentstow</pre>
-      <p>在第二台机器上，克隆下来并运行 <code>agentstow sync</code>。</p>
+chezmoi add ~/.agents ~/.config/agent-sync</pre>
+      <p>在第二台机器上，克隆下来并运行 <code>agent-sync sync</code>。</p>
     </div>
   </section>
 
@@ -274,22 +274,22 @@ chezmoi add ~/.agents ~/.config/agentstow</pre>
     <div class="shell">
       <h2>词汇表</h2>
       <dl class="terms">
-        <dt>Commons</dt><dd>规范目录 <code>~/.agents/</code>，保存 agentstow 同步的一切的唯一真实副本——一块其他工具也居住其中的共享区；agentstow 是租户，从来不是房东。</dd>
+        <dt>Commons</dt><dd>规范目录 <code>~/.agents/</code>，保存 agent-sync 同步的一切的唯一真实副本——一块其他工具也居住其中的共享区；agent-sync 是租户，从来不是房东。</dd>
         <dt>目标（Target）</dt><dd>接收扇出的某个智能体的配置面。</dd>
         <dt>扇出（Fan-out）</dt><dd>一个 Commons 条目以符号链接形式落到每个目标里。</dd>
         <dt>原生（Native）</dt><dd>直接读取 Commons、因此不需要扇出的智能体。</dd>
         <dt>变体（Variant）</dt><dd>目标里有意遮蔽 Commons 副本、只对该智能体生效的真实文件或目录。一等公民，永远保留，绝不覆盖。</dd>
-        <dt>纳入（Adopt）</dt><dd>用一个动词把路径纳入 agentstow 的管理；路径在哪里决定机制——移入 Commons 并在原处留下链接、位于 git 仓库时成为 Sourced 条目、其余则复制进来。</dd>
+        <dt>纳入（Adopt）</dt><dd>用一个动词把路径纳入 agent-sync 的管理；路径在哪里决定机制——移入 Commons 并在原处留下链接、位于 git 仓库时成为 Sourced 条目、其余则复制进来。</dd>
         <dt>Sourced 条目</dt><dd>一个以符号链接指向其来源（Source）的 Commons 条目——来源是一个外部路径，通常在 git 仓库里，持有内容的唯一真实副本。Commons 保管指针，来源保管真相。</dd>
-        <dt>退管（Revert）</dt><dd>移除 agentstow 放进某个目标的一切，是一次深思熟虑的退出动作。目标仍处于启用状态时拒绝执行，这样之后的 sync 不会悄悄重做 revert 撤掉的东西。</dd>
-        <dt>外来项（Foreign）</dt><dd>目标里不属于 agentstow 的链接、文件或服务器条目。永远不碰，由 <code>status</code> 列出。</dd>
-        <dt>冲突（Conflict）</dt><dd>占据了 agentstow 本要写入位置的外来<em>文件</em>——报告并指出解法，绝不覆盖。</dd>
+        <dt>退管（Revert）</dt><dd>移除 agent-sync 放进某个目标的一切，是一次深思熟虑的退出动作。目标仍处于启用状态时拒绝执行，这样之后的 sync 不会悄悄重做 revert 撤掉的东西。</dd>
+        <dt>外来项（Foreign）</dt><dd>目标里不属于 agent-sync 的链接、文件或服务器条目。永远不碰，由 <code>status</code> 列出。</dd>
+        <dt>冲突（Conflict）</dt><dd>占据了 agent-sync 本要写入位置的外来<em>文件</em>——报告并指出解法，绝不覆盖。</dd>
         <dt>渲染（Render）</dt><dd>把 Commons 条目翻译成某个智能体的原生格式，并合并进该智能体的配置文件。</dd>
-        <dt>受管（Managed）</dt><dd>名字出现在 Commons 里的条目：agentstow 在每个目标配置里都拥有它，以 Commons 为准。</dd>
+        <dt>受管（Managed）</dt><dd>名字出现在 Commons 里的条目：agent-sync 在每个目标配置里都拥有它，以 Commons 为准。</dd>
         <dt>停用（Disabled）</dt><dd>Commons 定义里带有 <code>"disabled": true</code> 的受管服务器——有定义但哪里都不渲染，重新启用即可在各处恢复，无需重新输入。</dd>
-        <dt>协议面（Protocol surface）</dt><dd>Commons 根部的 <code>.agents</code> 协议路径——<code>tasks/</code>、<code>memories/</code>、<code>models.json</code>、<code>system-prompt.md</code>——<code>doctor</code> 会按名字归属它们，agentstow 永远不碰。</dd>
-        <dt>微调（Tweak）</dt><dd>合并进单个智能体渲染结果的按智能体附加项，在 <code>agentstow.toml</code> 中声明，绝不放进 Commons。</dd>
-        <dt>标记（Marker）</dt><dd>每个生成文件里的那一行注释，让文件无需状态文件即可被认出是 agentstow 的。</dd>
+        <dt>协议面（Protocol surface）</dt><dd>Commons 根部的 <code>.agents</code> 协议路径——<code>tasks/</code>、<code>memories/</code>、<code>models.json</code>、<code>system-prompt.md</code>——<code>doctor</code> 会按名字归属它们，agent-sync 永远不碰。</dd>
+        <dt>微调（Tweak）</dt><dd>合并进单个智能体渲染结果的按智能体附加项，在 <code>agent-sync.toml</code> 中声明，绝不放进 Commons。</dd>
+        <dt>标记（Marker）</dt><dd>每个生成文件里的那一行注释，让文件无需状态文件即可被认出是 agent-sync 的。</dd>
       </dl>
     </div>
   </section>
@@ -300,8 +300,8 @@ chezmoi add ~/.agents ~/.config/agentstow</pre>
   <div class="shell">
     <nav>
       <a href="/zh">首页</a>
-      <a href="https://github.com/agentstow/agentstow">GitHub</a>
-      <a href="https://github.com/agentstow/agentstow/blob/main/LICENSE">MIT</a>
+      <a href="https://github.com/agent-sync-sh/agent-sync">GitHub</a>
+      <a href="https://github.com/agent-sync-sh/agent-sync/blob/main/LICENSE">MIT</a>
     </nav>
   </div>
 </footer>

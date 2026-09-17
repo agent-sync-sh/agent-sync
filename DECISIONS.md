@@ -1488,3 +1488,66 @@ about whether the scope exists, and npm's 2FA applies to writes.
 The PyPI environment's `agent-sync-v*` tag policy is called out as the quiet
 one. It is registry-side, so nothing in this repo can assert it, and a stale
 policy does not fail loudly — the job simply never receives a credential.
+
+## 2026-09-17 — The site moved to agent-sync.sh; the old domains 301 straight to it
+
+Frank asked for `agentstow.dev` to redirect to `agent-sync.sh`, and then for
+`agent-sync.sh` to serve the original static site rather than the rename
+placeholder that had been put there. The site was renamed in-tree — name,
+domain, install commands, config paths, environment variables — and deployed
+as the Worker `agent-sync-site`, which the placeholder had already created and
+attached to the apex.
+
+Three calls the ask did not settle:
+
+`agentstow.com` and `agentstow.org` point at `agent-sync.sh` directly, not at
+`agentstow.dev`. Chaining through the old canonical would have worked, but a
+two-hop redirect is two certificates and two rules that can each go stale, and
+the second one asked for the change before the first was even reported.
+
+The install lines say `agent-sync-sh` on npm, pip, cargo and `npx`, and
+`brew tap agent-sync-sh/tap`, following the Cargo/npm manifests and the
+release runbook rather than the README, which still says `agent-sync` and
+`agent-sync/agent-sync` — the README is the stale one, and this journal already
+records that the registries carry the suffix. `uvx agent-sync-sh` is on the
+page too, but PyPI has no such package yet (404 at time of writing), so that
+line and the `pip install` one are promises the first release has to keep.
+
+`agentstow-site` is left in place, still holding `agentstow.dev` as its custom
+domain. That attachment is what gives the apex a proxied record for the
+redirect rule to fire on; deleting the Worker would drop it and silently break
+the redirect. `site/DEPLOY.md` says so, and also that Workers Builds is no
+longer connected to either Worker — the transfer orphaned it — so deploys are
+by hand until it is redone in the dashboard.
+
+## 2026-09-17 — `agentstow-site` is deleted, not kept; the site's names are semantic, not literal
+
+Supersedes the previous entry's third call. After a grilling, Frank chose to
+delete the old Worker rather than leave it holding `agentstow.dev`. Its DNS
+side-effect is replaced by the same `AAAA 100::` proxied record the `.com` and
+`.org` zones already use, so all three old domains are now plain redirect-only
+zones with nothing behind them but a rule. `agent-sync-site` was not deleted
+and recreated: it already served `site/` under the name `wrangler.toml` uses,
+and the only thing a fresh Worker would have bought is a version history
+without the placeholder in it, at the cost of a certificate reissue.
+
+The rename in `site/` follows meaning rather than a literal substitution, and
+the root README's install block is corrected to match. `npm`, `pip`, `cargo`,
+`npx`, `uvx` and the tap all say `agent-sync-sh` — what the registries and the
+org actually carry — while the binary and prose say `agent-sync`. A literal
+`s/agentstow/agent-sync/` would have advertised packages that are taken by
+other projects on crates.io and PyPI, per the 2026-09-16 entry. Three
+`agentstow` strings stay in `site/` deliberately: the spec path
+`.scratch/agentstow-v1/`, the old domain names in the `wrangler.toml` comment,
+and the old Worker name in DEPLOY.md's history — all name things that exist.
+
+Workers Builds is to be reconnected in the dashboard after this commit is
+pushed, not before: the initial build runs against `main`, and until the push,
+`main`'s `wrangler.toml` still names the deleted Worker.
+
+The og.png recipe in `site/README.md` moves from headless Chrome to Playwright
+with the light scheme forced. Chrome's screenshot inherits the Mac's appearance
+and every flag tried to override it — `--force-dark-mode=0`,
+`--force-prefers-color-scheme`, a `color-scheme: light only` style — left the
+dark theme in place. A recipe whose output depends on a desktop setting is a
+trap.
