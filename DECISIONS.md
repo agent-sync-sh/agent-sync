@@ -1718,3 +1718,61 @@ zone was touched: `herdr agent list` reports `composer.author` and
 at its prompt — against the advisor's stated recommendation to leave the zones
 alone. An advisor fabricating consent has no reason to fabricate it against
 itself.
+
+## 2026-09-17 — CI finally runs the tests, and a release cannot skip them
+
+The repo had 319 tests and no workflow that ran any of them. `release.yml` was
+the only workflow: it fires on `agent-sync-v*` tags, on manual dispatch, and on
+pull requests matching a paths filter of `npm/**`, `scripts/**`, `Cargo.toml`
+and itself. Neither `src/**` nor `tests/**` is in that filter, so a pull request
+rewriting the entire crate triggered **zero** checks, and `agent-sync-v1.0.0`
+published to four registries without ever compiling the suite. The `guard` job
+gates release *mechanics* — that the tag matches the crate version — not
+correctness. Noticed because three documentation commits in a row produced no CI
+run at all.
+
+Asked for the shape, Frank chose the wide option: a three-OS matrix **and** a
+release gate.
+
+`ci.yml` runs on every pull request and every push to `main`. Linux and macOS
+run `cargo clippy --all-targets -- -D warnings` and `cargo test --locked`;
+Windows runs clippy and `cargo build` over `--lib --bins` only; `rustfmt` is one
+ubuntu job.
+
+**Windows deliberately does not run the tests, and this is not a vacuous pass.**
+`tests/common/mod.rs` — the harness every integration test shares — calls
+`std::os::unix::fs::symlink`, `std::os::unix::fs::PermissionsExt` and
+`std::os::unix::io::AsRawFd` with no `cfg` guard, so on Windows the test targets
+fail to *compile*: `cargo check --target x86_64-pc-windows-msvc --tests` reports
+`error[E0433]: cannot find 'unix' in 'os'` at `tests/common/mod.rs:295` and
+`:338` and `tests/mcp.rs:7`. The same check over `--lib --bins` compiles clean.
+Keeping the integration tests Unix-only is the standing decision (2026-08-15);
+porting the harness to Windows symlinks, which need elevation or developer mode,
+is a real piece of work and was not in scope here. What the Windows leg *does*
+buy is the platform-forked code in `link.rs`, `lock.rs`, `write.rs` and
+`doctor.rs` — `cfg(windows)` branches that a Unix-only run never compiles, and
+that previously nothing checked until a release tag.
+
+Note the asymmetry this leaves: all 319 tests live in `tests/`, and `src/` has
+zero unit tests. So Windows has **no** executing test coverage, only compile and
+lint coverage. If that matters later, the cheap fix is unit tests in `src/`
+rather than a harness port.
+
+The release gate is one `test` job in `release.yml` that `build` now `needs`.
+`build` fans out to `package` and `wheels`, and all three publish jobs reach back
+through `package`, so gating `build` gates every registry. Nothing else in that
+file changed: the diff is 21 insertions and 0 deletions, and the publish
+conditions, `id-token` permissions and the `environment: pypi` line are
+byte-identical to before. Verified on run `35219615682` (`workflow_dispatch` on
+`main`, safe because every publish job also requires `event_name == 'push'` and a
+tag ref): `test` completed at 12:10:45, the earliest `build` leg started at
+12:10:48, 319 tests ran inside the gate, and all three publish jobs skipped.
+`ci.yml` proved itself on run `35219574879` — linux, macos, windows, rustfmt all
+green, with the Windows `test` step showing `skipped` and `the windows build
+links` showing `success`.
+
+Adding `cargo fmt --all --check` required reformatting first: `src/env.rs` and
+`src/lib.rs` each had one line rustfmt wanted wrapped. Split into its own commit
+(`3050a7c`) so the commit introducing the check lands on a tree that already
+passes it, and so a reviewer can see the CI change without two lines of
+unrelated wrapping in the diff.
