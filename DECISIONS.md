@@ -1366,3 +1366,36 @@ state nobody should be in.
 
 This is the one place the rename is not symmetric, and it is why the deprecation
 notices say the old package is replaced rather than superseded.
+
+## 2026-09-16 — The npm deprecation points at the site, not at the package
+
+All seven npm packages are deprecated, every version, with *"agentstow has been
+renamed to agent-sync. See https://agent-sync.sh for the new package."*
+
+The obvious wording was "install agent-sync-sh instead", and it is wrong today:
+`agent-sync-sh` does not exist on npm until the bootstrap publish, because
+trusted publishing cannot create a package. Shipping it now would repeat the
+defect this release already had to fix once — the wheel and npm launcher both
+told users to `cargo install agentstow`, a command that a later yank would
+break. A deprecation notice is read at install time by someone who has just been
+told to go elsewhere, so "elsewhere" has to resolve. The site does, and it says
+plainly that the rename is mid-flight. **These messages must be re-set to name
+the package once 1.0.0 is published**; `npm deprecate` overwrites freely, so
+this costs one command and no version.
+
+`cargo yank` is deliberately not run alongside this. Deprecation warns and still
+installs, so 2.0.6 keeps working for the people the notice is talking to;
+yanking the old line now would strand exactly that audience. It waits until the
+successor is proven.
+
+One casualty worth naming: deprecating without a version range rewrites every
+version's message, so 1.1.2's specific note — *"binary shipped without the
+executable bit; use 1.1.3"* — is gone. Accepted, because the whole line is now
+superseded and 1.1.3 is no more alive than 1.1.2.
+
+The account carries 2FA on **writes**, not just authorization, so every publish
+and deprecate is an interactive operation. npm's browser approval flow needs one
+approval per package; passing a single `--otp` to all seven back to back does it
+in one. Worth knowing for the bootstrap publishes, and worth knowing that npm is
+retiring the token-based bypass — the registry now warns that 2FA-bypassing
+tokens end for account changes in Aug 2026 and for direct publishing in Jan 2027.
