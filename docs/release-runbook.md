@@ -295,6 +295,31 @@ brew fetch agent-sync
    npm install --no-save agent-sync-sh && ./node_modules/.bin/agent-sync --version
    ```
 
+## Retiring the agentstow line
+
+The old packages are **deprecated but not yanked**, deliberately. A deprecation
+warns and still installs, so agentstow 2.0.6 keeps working for exactly the people
+its notice is talking to — it tells them to go elsewhere, and yanking it would
+strand them mid-sentence. The notice now names `agent-sync-sh`, so there is a
+working destination.
+
+`cargo yank` is the only half still pending, and it is scheduled rather than
+open-ended:
+
+> **Yank agentstow 2.0.x once 1.1.0 ships, or on 2026-10-29 (~6 weeks after
+> 1.0.0), whichever comes first** — provided `agent-sync-sh` installs cleanly
+> from crates.io, npm and PyPI on a machine that has never had it.
+
+    cargo yank --version 2.0.6 agentstow   # and 2.0.5, 2.0.4, ... as desired
+
+Yanking blocks new dependency resolution but leaves existing `Cargo.lock` files
+working, so it is the mild end of retirement. `Formula/agentstow.rb` is already
+frozen and carries Homebrew's own `deprecate!`; the npm packages are already
+deprecated. Nothing else about the old line needs action.
+
+Not scheduled here because it is the owner's call, not the pipeline's: the HSTS
+preload submission for `agent-sync.sh`, which is public and slow to reverse.
+
 ## Notes
 
 - **2FA.** The account enforces 2FA for publishing. CI is untouched by this:

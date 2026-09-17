@@ -1594,3 +1594,33 @@ the seven npm trust entries stay unexercised until 1.0.1. The tagged run is an
 end-to-end proof of PyPI only. The runbook also gains a line saying a
 registry-side failure is a `gh run rerun --failed`, not a tag move — the tag move
 is what springs the draft-Release trap documented just below it.
+
+## 2026-09-17 — 1.0.0 is out; the deprecation notices now name the package
+
+`agent-sync-v1.0.0` shipped via run 35214086412, 15/15 jobs green. That
+discharges the obligation the 2026-09-16 npm entry left open: the seven
+agentstow notices no longer point only at the website. They now read *"agentstow
+is now agent-sync: npm i -g agent-sync-sh (the command is still agent-sync).
+https://agent-sync.sh"* — naming the package, which is safe to do only now that
+`agent-sync-sh` resolves on npm. The command and the binary differ, so the notice
+says both; that mismatch is the thing a reader trips over. One `--otp` covered
+all seven, and two of them read back with the old message for a few minutes
+afterwards — npm's CDN lag on reads, not a failed write, confirmed on re-read.
+
+The release proved less than a green run suggests, which is worth recording
+because the next release will differ. The bootstrap publishes had already put
+1.0.0 on crates.io and on all seven npm packages, so both jobs took their
+idempotence skip. **PyPI is the only channel this run published**, and it is
+therefore the only end-to-end proof of trusted publishing: seven wheels, project
+created by the pending publisher. crates.io was exercised as far as the OIDC
+token mint, because `rust-lang/crates-io-auth-action` runs in a step *before* the
+skip — a bad entry would have failed there. npm was not exercised at all: its
+token exchange happens inside `npm publish`, which never ran. **The seven npm
+trusted-publisher entries are still unproven and will first be tested by 1.0.1.**
+
+`cargo yank` of the agentstow 2.0.x line stays deferred, for the reason the
+2026-09-16 entry gave: deprecation warns and still installs, so 2.0.6 keeps
+working for exactly the people the notice is addressed to, and yanking now would
+strand them. What was missing was an end date rather than a reason — left open,
+"until the successor is proven" is how an obligation gets forgotten. The runbook
+now carries the condition.
