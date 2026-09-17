@@ -206,7 +206,7 @@ jobs:
           out="$(/tmp/fallbacktest/bin/agentstow 2>&1 || true)"
           echo "$out"
           echo "$out" | grep -q 'no prebuilt binary' || { echo "fallback message missing"; exit 1; }
-          echo "$out" | grep -q 'cargo install agentstow' || { echo "no way forward given"; exit 1; }
+          echo "$out" | grep -q 'cargo install agent-sync-sh' || { echo "no way forward given"; exit 1; }
       - name: the linux wheel installs and runs
         # This runner is linux-x64, so the manylinux wheel is the one target
         # whose install can actually be exercised here. It is also the check
