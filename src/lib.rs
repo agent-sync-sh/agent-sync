@@ -100,7 +100,10 @@ pub fn run(
     let mut reporter = report::Reporter::new(out, err);
 
     // A bare invocation is `sync`, the everyday command.
-    match parsed.command.unwrap_or(cli::Command::Sync { dry_run: false }) {
+    match parsed
+        .command
+        .unwrap_or(cli::Command::Sync { dry_run: false })
+    {
         cli::Command::Sync { dry_run } => sync::run(&env, &config, &mut reporter, dry_run),
         cli::Command::Init => init::run(&env, &config, &mut reporter),
         cli::Command::Adopt { path, dry_run } => {

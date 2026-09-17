@@ -69,7 +69,8 @@ impl Env {
         let config = xdg_dir(&vars, "XDG_CONFIG_HOME", &home, ".config", TOOL_DIR);
         let state = xdg_dir(&vars, "XDG_STATE_HOME", &home, ".local/state", TOOL_DIR);
         let legacy_config = home.join(LEGACY_CONFIG_DIR);
-        let legacy_tool_config = xdg_dir(&vars, "XDG_CONFIG_HOME", &home, ".config", LEGACY_TOOL_DIR);
+        let legacy_tool_config =
+            xdg_dir(&vars, "XDG_CONFIG_HOME", &home, ".config", LEGACY_TOOL_DIR);
 
         Ok(Self {
             home,
