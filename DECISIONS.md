@@ -1399,3 +1399,30 @@ approval per package; passing a single `--otp` to all seven back to back does it
 in one. Worth knowing for the bootstrap publishes, and worth knowing that npm is
 retiring the token-based bypass — the registry now warns that 2FA-bypassing
 tokens end for account changes in Aug 2026 and for direct publishing in Jan 2027.
+
+## 2026-09-16 — The repo now lives at agent-sync-sh/agent-sync
+
+Transferred in one operation, org move and rename together, so there is a single
+redirect hop rather than two. Everything survived: 13 tags, 6 releases, the
+`pypi` environment, the default branch, stars and the workflow. Release assets
+resolve through the redirect at their old URLs, which is what keeps `brew
+install` working until the formula is regenerated in step 4 — verified by
+downloading the darwin-arm64 tarball from the `agentstow/agentstow` path after
+the transfer and matching its checksum against the formula.
+
+**Nothing may ever be created at `agentstow/agentstow` again.** Keeping the
+vacated org rather than deleting it is what blocks a stranger from taking the
+name, but it also means the hazard is reachable by us: GitHub serves the
+redirect only while no repository occupies the old path, so creating one there —
+even an empty placeholder, even briefly — permanently destroys the redirect for
+every published crate, package, wheel and formula URL that still names it. The
+org stays empty on purpose. It is not a spare namespace.
+
+The transfer deliberately broke all nine OIDC trust entries and severed
+Cloudflare Workers Builds, whose GitHub App is org-scoped and dashboard-only.
+That is the cost the farewell-first ordering was designed around: 2.0.6 was
+already published, so nothing needs the old bindings again.
+
+The working copy is still at `~/github.com/agentstow/agentstow` on this machine.
+Moving it to match the new name is cosmetic and was not done mid-session,
+because it would pull the directory out from under the running shell.
