@@ -1624,3 +1624,40 @@ working for exactly the people the notice is addressed to, and yanking now would
 strand them. What was missing was an end date rather than a reason — left open,
 "until the successor is proven" is how an obligation gets forgotten. The runbook
 now carries the condition.
+
+## 2026-09-17 — The old line is retired early, and agent-sync.sh is in the preload queue
+
+Frank chose all three held items rather than waiting on the conditions written
+for them a few hours earlier. Recording what that overrode, since the reasoning
+it replaced is still in this file.
+
+**`cargo yank`, ahead of schedule.** `52ee6e7` had scheduled the yank for 1.1.0
+or 2026-10-29, on the argument that a deprecation warns and still installs, so
+2.0.6 kept working for the people its notice addressed. That argument was about
+stranding readers mid-sentence — and it weakened once the notice named a package
+that resolves rather than just a website. All seven 2.0.x versions are yanked.
+**The 1.x line is deliberately left alone**: the decision named 2.0.x, and the
+relay that carried it broadened this to "every published version", which would
+have been thirteen rather than seven. The narrower reading is the one that was
+actually chosen, and a yank is one command to extend and one to undo, so
+guessing wide had no upside. Yanking blocks new resolution and leaves existing
+lockfiles working; nothing under `agent-sync-sh` was touched.
+
+**HSTS preload.** Submitted and `pending`. The prerequisites were not met and
+nothing in this repository could have told us so: `always_use_https` was `off`,
+so `http://agent-sync.sh` served a 200 rather than redirecting, and the zone's
+HSTS header was disabled outright. Both are Cloudflare zone settings. This is
+the same shape as the PyPI environment's tag policy — registry-side state that
+no file here asserts, failing by doing nothing — and it is why the check ran
+from outside with `curl` before anything was submitted, rather than from the
+config. `hstspreload.org`'s own eligibility API then reported zero errors and
+zero warnings before the POST.
+
+`includeSubDomains` plus `preload` commits every future subdomain of
+`agent-sync.sh` to HTTPS, and removal from the list takes months. Today the zone
+holds exactly two records, the apex and `www`, both proxied and both HTTPS, so
+the commitment costs nothing now — but it is a standing constraint on anything
+added later, not a one-time switch.
+
+The local `agentstow` installs are gone from this machine (Homebrew formula and
+tap, and a stale `cargo install` copy at 2.0.1). `agent-sync` stays installed.
