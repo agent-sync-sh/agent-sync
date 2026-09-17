@@ -5,7 +5,7 @@ name: ci
 # dispatch, and on pull requests touching a narrow paths filter (npm/, scripts/,
 # Cargo.toml, itself). Nothing in that filter covers src/ or tests/, so before
 # this workflow existed a pull request rewriting the whole crate ran zero checks
-# and a tag published to four registries without ever compiling the 319-test
+# and a tag published to four registries without ever compiling the test
 # suite. None of crates.io, npm or PyPI lets a version be re-uploaded, so an
 # untested publish is not something a follow-up commit can take back.
 
@@ -30,35 +30,14 @@ jobs:
         include:
           - name: linux
             os: ubuntu-latest
-            scope: --all-targets
-            test_args: ""
-            run_tests: true
           - name: macos
             os: macos-latest
-            scope: --all-targets
-            test_args: ""
-            run_tests: true
+          # The full suite runs here, integration tests included. Creating a
+          # symlink on Windows needs Developer Mode or elevation, and the
+          # runner is administrative, so it works; a box that is neither would
+          # fail the fixtures with OS error 1314.
           - name: windows
             os: windows-latest
-            # Executes the unit tests, which are the ones that cover every
-            # cfg(windows) branch — link.rs flavour and the 1314 rewrite,
-            # lock.rs share-mode contention, write.rs mode reporting, doctor.rs
-            # probe. Clippy still spans --all-targets, so the ported harness and
-            # all 17 integration files are compile- and lint-checked here even
-            # though they are not yet run.
-            #
-            # The integration suite is NOT green on Windows yet: 260 of 278 pass
-            # on a real Windows 11 box, and 18 fail across revert, the XDG
-            # config paths and the legacy-dir prune. Those are genuine
-            # behavioural gaps, not separator noise, so they are left visible as
-            # work rather than hidden behind #[ignore] — turning this leg on
-            # before they are fixed would only make main permanently red.
-            #
-            # Symlink creation on Windows needs Developer Mode or elevation;
-            # the runner is administrative, so it works there.
-            scope: --all-targets
-            test_args: --lib
-            run_tests: true
     steps:
       - uses: actions/checkout@v7
       - name: install the rust toolchain
@@ -70,10 +49,9 @@ jobs:
           rustup default stable
           rustc --version
       - name: clippy
-        run: cargo clippy --locked ${{ matrix.scope }} -- -D warnings
+        run: cargo clippy --locked --all-targets -- -D warnings
       - name: test
-        if: ${{ matrix.run_tests }}
-        run: cargo test --locked ${{ matrix.test_args }}
+        run: cargo test --locked
 
   fmt:
     name: rustfmt

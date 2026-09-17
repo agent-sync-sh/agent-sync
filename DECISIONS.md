@@ -1873,3 +1873,42 @@ fixture needs a platform-appropriate missing path rather than the code changing.
 **The ci.yml Windows leg therefore still runs `--lib`, not the full suite.** The
 flip is the last step and it waits on those three, for the same reason as before:
 a green tick bought by hiding three real failures is worth less than the failures.
+
+## 2026-09-17 — The last three Windows failures, and the leg is flipped
+
+**Windows is green: 333 passed, 0 failed, 0 ignored on a real Windows 11 box
+(`windows-zx8`). Unix holds at 332.** The three that remained were both harness
+faults, and the previous entry's guess at the first one was wrong — worth
+correcting, because it pointed at the wrong layer.
+
+**The two adopt symlink tests — HARNESS, and not the reason last entry gave.**
+The cause is not creation-order flavour typing. It is that a reparse point
+stores its target text *verbatim*, and Windows does not accept `/` there the way
+it does in an ordinary path. A fixture link spelled `../../lib/research` is
+therefore created successfully and then resolves to nothing:
+`a_symlink_input_is_linked_as_given_never_resolved_through` failed with
+`ERROR_INVALID_NAME` (os error 123) reading through it, and
+`a_symlink_input_is_copied_through_to_its_content` failed because a link that
+resolves to nothing is not a directory, so adopt's shape check said "this is a
+file" — a correct answer to a broken input.
+
+Production is untouched by this: it builds every link target from `PathBuf`
+components, which are native by construction. Only the fixtures spell targets as
+`/`-separated literals, so the translation belongs in `make_symlink`, beside the
+flavour rule it already mirrors. `link_text` already slashes what it reads back,
+so no assertion had to change.
+
+**`a_missing_source_is_still_listed_and_marked` — TEST DATA.** `/nowhere/...` is
+a Unix absolute path. Windows resolves a rooted path against the current drive
+*as the link is created*, so the fixture's link came back as
+`C:\nowhere\skills\research` and the hardcoded expectation could never match. It
+now builds the missing path from the fixture, exactly as the passing sibling two
+tests above it already did. Nothing about the product changed; the test was
+asserting on a spelling rather than on the behaviour it names.
+
+**ci.yml's Windows leg now runs `cargo test --locked`, the same as the other
+two.** With all three legs identical the `scope`, `test_args` and `run_tests`
+matrix knobs existed only to describe the gap, so they are deleted rather than
+left as configuration nobody varies. What stays is the operational note: symlink
+creation on Windows needs Developer Mode or elevation, the GitHub runner is
+administrative, and a box that is neither fails the fixtures with OS error 1314.
