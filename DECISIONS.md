@@ -1245,3 +1245,80 @@ directory the command is run in, never from an extracted crate. The workflow
 keeps its explicit `rustup toolchain install stable`: the file would install
 stable on a runner that lacked it, but the explicit step names the profile and
 prints the version.
+
+## 2026-09-16 — agentstow becomes agent-sync; the published package is `agent-sync-sh`
+
+Frank bought `agent-sync.sh` and asked for the project to be renamed, the site
+moved, and the repo transferred to a new org. "stow" was the thing being dropped:
+a GNU Stow reference that says nothing to anyone who has not used Stow.
+
+`agent-sync` itself could not be published. crates.io holds an active
+`agent-sync` — *"Safely synchronize coding-agent sessions and memories over
+SSH"*, v0.7.1, updated nine days ago — and PyPI holds another, *"Bidirectional
+synchronization tool for custom agents and settings between Claude Code and
+GitHub Copilot"*, v1.2.0. Neither is abandoned, so neither PEP 541 nor crates.io
+squatting policy applies. The obvious fallback `agent-sync-cli` is taken too, on
+npm, by *"CLI tools to manage synchronization of AI coding agent files, such as
+reusable prompts and skills"* — a description of this project. Three separate
+occupants in one niche; the name is simply crowded.
+
+A sweep of 48 alternatives found nine clean across crates.io, npm, PyPI and a
+free GitHub namespace, but none read better than `agentstow`, and seven had no
+`.com`. Rather than take a worse name to win a namespace, the name stays
+`agent-sync` where nothing can stop it — the project, the binary, the domain —
+and the registries get `agent-sync-sh`, free on all four channels. The suffix is
+not arbitrary padding: it is the domain and the org, so `cargo install
+agent-sync-sh` reads as "the thing from agent-sync.sh" and, usefully, cannot be
+confused with the three rivals. Uniformity across registries was worth more than
+the prettier `npm i -g agent-sync`, which was free and is being parked as a stub
+only so nobody else can point it at these users.
+
+Splitting the package name from the binary name costs one thing: the binary was
+implicit from `package.name`, and now needs an explicit `[[bin]]`, mirrored in
+the npm `bin` map, the wheel's `.data/scripts/` placement and the formula's
+`bin.install`. Bare `agent-sync` will default to `sync`, because `agent-sync
+sync` is the command users would otherwise type every day.
+
+Version restarts at `1.0.0`. The code is at 2.0.5 maturity, but these are new
+packages on registries with no history of them, and `3.0.0` as a first release
+reads as a mistake.
+
+## 2026-09-16 — The farewell release ships before the org transfer, not after
+
+All nine OIDC trust entries — seven npm packages, crates.io, PyPI — name owner
+`agentstow`, and there are no long-lived tokens anywhere in the pipeline. The
+moment the repo leaves that org every binding breaks, and npm's provenance check
+compounds it: `package.json`'s `repository` must match the actual repo or the
+publish is rejected outright. So a final `agentstow` 2.0.6 pointing users at
+agent-sync has to be cut first, while the old bindings still work. Doing it
+afterwards would mean registering trust entries twice — once to say goodbye,
+once to say hello.
+
+The vacated `agentstow` GitHub org is kept, empty. A renamed-away org name
+becomes claimable by anyone, and 1884 npm downloads a month is enough traffic
+that letting a stranger inherit the name is a real risk rather than a
+theoretical one. The old crate and packages are deprecated and yanked rather
+than deleted; crates.io could not delete them regardless.
+
+Accepted cost: transferring the repo severs Cloudflare Workers Builds, whose
+GitHub App is org-scoped and dashboard-only with no scriptable path — the same
+finding recorded on 2026-08-13. The site stops auto-deploying until it is
+reconnected by hand.
+
+## 2026-09-16 — The rename needs no user migration, except the render marker
+
+`~/.agents` survives untouched. The Commons was deliberately built with no
+marker, manifest, provenance file or lockfile of agentstow's own (ADR-0004), and
+`AGENTS.md`, `mcp.json`, the family directories, every symlink and the
+`@~/.agents/AGENTS.md` import line are all name-neutral. Per-host migration is
+therefore moving one config file and re-running sync, which is not worth
+dual-read machinery for a project one month old with two stars. Doctor names the
+leftover directory instead, the same warn-and-let-them-delete pattern the v1
+`~/.agentstow` case already uses — now a third legacy layer.
+
+The exception is `src/render.rs`'s `MARKER`, which is stamped as the first line
+of every rendered command file on disk and matched by exact equality. Changing
+it without accepting the old string would not error; every already-stamped file
+would silently reclassify as Foreign, sync would write a duplicate beside it,
+and the orphan sweep would skip it forever. `is_ours()` therefore has to accept
+both markers, following the `PRE_V2_AGENTS_NAME` precedent.
