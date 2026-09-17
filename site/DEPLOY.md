@@ -9,7 +9,7 @@ created by hand.
 - [x] First deploy — live at <https://agent-sync.sh> (2026-09-17)
 - [x] `www.agent-sync.sh` → 301 to the apex
 - [x] `agentstow.dev`, `agentstow.com`, `agentstow.org` (and their `www`) → 301 to the apex
-- [ ] Auto-deploy on push to `main` — Workers Builds must be reconnected (see below)
+- [x] Auto-deploy on push to `main` — Workers Builds, reconnected 2026-09-17 (see below)
 
 Until 2026-09-17 the site lived at `agentstow.dev` as the Worker `agentstow-site`. That
 Worker is deleted; `agentstow.dev` is now a redirect-only zone like `.com` and `.org`.
@@ -68,15 +68,17 @@ has exactly one rule.
 
 ## Auto-deploy
 
-**Reconnect pending as of 2026-09-17.** The previous Worker was deployed by Workers Builds
-from `agentstow/agentstow`; the repo transfer to `agent-sync-sh/agent-sync` and the new
-Worker name orphaned that connection. Until it is redone, deploy by hand with
-`npx wrangler deploy`.
+Deploys are automatic: Cloudflare's Workers Builds is connected to `agent-sync-sh/agent-sync`,
+and a push to `main` that touches `site/` deploys the site. A push touching nothing under
+`site/` is skipped before a build is queued, and non-production branches get preview
+versions via `npx wrangler versions upload` without promoting them.
 
-Reconnect under **Workers & Pages → `agent-sync-site` → Settings → Build** — dashboard only;
-there is no CLI or API path (see the history note below). Connect only after `main` carries
-`name = "agent-sync-site"` in `wrangler.toml`; the initial build runs against whatever
-`main` is, and a name mismatch fails it. The configuration to recreate:
+The connection was lost once, in the 2026-09-17 org transfer from `agentstow/agentstow`, and
+redone by hand. Connected under **Workers & Pages → `agent-sync-site` → Settings → Build** —
+dashboard only; there is no CLI or API path (see the history note below). If it has to be
+redone again, connect only after `main` carries `name = "agent-sync-site"` in
+`wrangler.toml`: the initial build runs against whatever `main` is, and a name mismatch fails
+it. The configuration of record:
 
 | Setting | Value |
 | :-- | :-- |
@@ -94,10 +96,6 @@ one repository. Cloudflare authenticates builds with its own auto-minted API tok
 Builds - <timestamp>`, visible under Settings → Build); no repository secret is involved. The
 Worker name in the dashboard must stay `agent-sync-site` — it has to match `name` in
 `wrangler.toml` or the build fails.
-
-Once connected: a push to `main` that touches `site/` deploys the site, a push touching
-nothing under `site/` is skipped before a build is queued, and non-production branches get
-preview versions via `npx wrangler versions upload` without promoting them.
 
 ### History: this replaced a GitHub Actions deploy
 
