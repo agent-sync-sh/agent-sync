@@ -1776,3 +1776,50 @@ Adding `cargo fmt --all --check` required reformatting first: `src/env.rs` and
 (`3050a7c`) so the commit introducing the check lands on a tree that already
 passes it, and so a reviewer can see the CI change without two lines of
 unrelated wrapping in the diff.
+
+## 2026-09-17 — Windows gets real test coverage, and a real bug turns up
+
+Asked how far to close the Windows gap, Frank chose the largest option: tests on
+all platforms. Frank also supplied a real Windows 11 machine (`ssh windows-zx8`),
+which is what made this honest rather than speculative.
+
+**Part 1, unit tests, done.** Thirteen `#[cfg(test)]` tests in `src/` cover every
+`cfg(windows)` branch, mirrored for Unix where a twin exists so the same names
+run on all three legs: `link.rs` symlink flavour (file, dir, dangling defaulting
+to file) and the 1314 rewrite; `lock.rs` contention and release; `write.rs` mode
+reporting and `is_exposed`; `doctor.rs` probe file, including that it never
+survives the call. `link.rs` gained one small refactor — the 1314 mapping is now
+`explain_privilege`, because an elevated session never produces 1314 to observe,
+so the mapping has to be callable directly.
+
+**A genuine production bug, found by the new tests on real hardware.**
+`normalize` matched `Component::RootDir | Component::Prefix(_)` into a single
+slot and overwrote it. Windows decomposes an absolute path into `Prefix("C:")`
+*followed by* `RootDir`, so the drive was silently dropped and `C:\dir\f` became
+`\dir\f` — drive-relative, therefore correct only when the current drive happens
+to match. It reaches users through `write::resolve`, which hands the normalized
+path back to a caller that then writes to it. Diagnosed from the code, then
+*confirmed* by a test that failed first and passed after, rather than assumed.
+
+**Part 2, the harness port, is substantially but not entirely done.** Verbatim
+symlink creation routes through one portable helper mirroring
+`link::create_symlink`'s flavour rule; `hold_lock` was *ported* to `share_mode(0)`
+rather than gated, which keeps the five busy-lock tests on every leg; `path()`
+joins component-wise and `link_text()` compares on shape, because `Path::join`
+keeps forward slashes verbatim on Windows and produced mixed-separator strings
+that no production output ever matched. Only three tests remain `cfg(unix)`, all
+asserting on mode bits.
+
+Measured on the real machine: unit 17/17, integration 260/278. **The remaining 18
+failures are real behavioural gaps, not separator noise** — they cluster in
+`revert`, the XDG config paths, and the legacy-dir prune.
+
+**So the Windows CI leg runs `--lib` and lints `--all-targets`, not the full
+suite.** Turning the full suite on today would make `main` permanently red, and
+`#[ignore]`-ing eighteen tests would buy a green tick by hiding exactly the
+information worth keeping. Clippy still spans every target, so the ported harness
+and all 17 integration files are compile- and lint-checked on Windows. The bar
+set for this work is met: Windows executes a non-zero test count (17), and the
+Unix legs went from 319 to 332 rather than dropping.
+
+Proven on PR #1, run `35250805862`: linux, macos, windows and rustfmt all green.
