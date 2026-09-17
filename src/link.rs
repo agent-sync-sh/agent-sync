@@ -76,17 +76,23 @@ pub fn create_symlink(text: &Path, at: &Path) -> io::Result<()> {
     } else {
         symlink_file
     };
-    make(text, at).map_err(|e| {
-        if e.raw_os_error() == Some(1314) {
-            io::Error::new(
-                e.kind(),
-                "creating symlinks requires Windows Developer Mode \
-                 (Settings → System → For developers) or an elevated shell",
-            )
-        } else {
-            e
-        }
-    })
+    make(text, at).map_err(explain_privilege)
+}
+
+/// Rewrite os error 1314 into the fix. Split out from `create_symlink` so it
+/// can be tested without an unprivileged shell to fail in: an elevated session
+/// (and a GitHub Windows runner) never produces 1314 to observe.
+#[cfg(windows)]
+fn explain_privilege(e: io::Error) -> io::Error {
+    if e.raw_os_error() == Some(1314) {
+        io::Error::new(
+            e.kind(),
+            "creating symlinks requires Windows Developer Mode \
+             (Settings → System → For developers) or an elevated shell",
+        )
+    } else {
+        e
+    }
 }
 
 /// Where a symlink at `link` with contents `text` points, lexically.
@@ -415,4 +421,99 @@ fn collect(root: &Path, dir: &Path, acc: &mut Vec<(String, Vec<u8>)>) -> Option<
         }
     }
     Some(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Windows symlinks carry a flavour; Unix ones do not. Every test here runs
+    /// on all three CI legs, and asserts the flavour only where one exists.
+    #[cfg(windows)]
+    use std::os::windows::fs::FileTypeExt;
+
+    fn link_type(at: &Path) -> fs::FileType {
+        fs::symlink_metadata(at)
+            .expect("the link should exist")
+            .file_type()
+    }
+
+    #[test]
+    fn create_symlink_links_to_a_file() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("target.txt"), b"hi").unwrap();
+        let at = dir.path().join("link");
+
+        create_symlink(Path::new("target.txt"), &at).unwrap();
+
+        let ft = link_type(&at);
+        assert!(ft.is_symlink());
+        #[cfg(windows)]
+        assert!(ft.is_symlink_file(), "a file target must make a file link");
+        assert_eq!(fs::read(&at).unwrap(), b"hi");
+    }
+
+    #[test]
+    fn create_symlink_links_to_a_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir(dir.path().join("target")).unwrap();
+        fs::write(dir.path().join("target/inside.txt"), b"hi").unwrap();
+        let at = dir.path().join("link");
+
+        create_symlink(Path::new("target"), &at).unwrap();
+
+        let ft = link_type(&at);
+        assert!(ft.is_symlink());
+        #[cfg(windows)]
+        assert!(
+            ft.is_symlink_dir(),
+            "a directory target must make a dir link, or traversal through it fails"
+        );
+        assert_eq!(fs::read(at.join("inside.txt")).unwrap(), b"hi");
+    }
+
+    /// The flavour is decided from what the text resolves to *now*, and a
+    /// dangling target resolves to nothing — so it must fall back to a file
+    /// link rather than failing. Every Commons family links to a file when the
+    /// entry is a file, which is what makes file the right default.
+    #[test]
+    fn create_symlink_dangling_target_defaults_to_file_flavour() {
+        let dir = tempfile::tempdir().unwrap();
+        let at = dir.path().join("link");
+
+        create_symlink(Path::new("nothing-here"), &at).unwrap();
+
+        let ft = link_type(&at);
+        assert!(ft.is_symlink(), "a dangling link is still a link");
+        #[cfg(windows)]
+        assert!(ft.is_symlink_file());
+        assert!(!at.exists(), "and it still does not resolve");
+        assert_eq!(fs::read_link(&at).unwrap(), Path::new("nothing-here"));
+    }
+
+    /// 1314 is ERROR_PRIVILEGE_NOT_HELD. Its own message names SeCreateSymbolicLink,
+    /// a privilege no ordinary user has heard of, so it is replaced by the fix.
+    #[cfg(windows)]
+    #[test]
+    fn a_privilege_error_is_rewritten_into_the_fix() {
+        let mapped = explain_privilege(io::Error::from_raw_os_error(1314));
+        let text = mapped.to_string();
+        assert!(text.contains("Developer Mode"), "got: {text}");
+        assert!(text.contains("elevated shell"), "got: {text}");
+        assert!(
+            !text.contains("1314"),
+            "the raw code should not survive: {text}"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn any_other_error_passes_through_untouched() {
+        // 5 is ERROR_ACCESS_DENIED — a real failure the user must see verbatim.
+        let original = io::Error::from_raw_os_error(5);
+        let expected = original.to_string();
+        let mapped = explain_privilege(io::Error::from_raw_os_error(5));
+        assert_eq!(mapped.to_string(), expected);
+        assert_eq!(mapped.raw_os_error(), Some(5));
+    }
 }

@@ -13,6 +13,38 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
+/// Create a symlink at `at` whose text is verbatim `target`.
+///
+/// Mirrors `agent_sync::link::create_symlink` rather than calling it: several
+/// tests deliberately build links the production code would never make, and a
+/// harness that routed through the code under test could not catch it making
+/// the wrong kind. The flavour rule is the same one — Windows links are typed,
+/// the flavour comes from what the text resolves to now, and a dangling target
+/// falls back to a file link — and the resolution is shared, because
+/// reimplementing lexical path resolution here would be its own bug farm.
+#[cfg(unix)]
+fn make_symlink(target: &str, at: &Path) {
+    std::os::unix::fs::symlink(target, at)
+        .unwrap_or_else(|e| panic!("create symlink {} -> {target}: {e}", at.display()));
+}
+
+#[cfg(windows)]
+fn make_symlink(target: &str, at: &Path) {
+    use std::os::windows::fs::{symlink_dir, symlink_file};
+    let make = if agent_sync::link::resolve_link(at, Path::new(target)).is_dir() {
+        symlink_dir
+    } else {
+        symlink_file
+    };
+    make(target, at).unwrap_or_else(|e| {
+        panic!(
+            "create symlink {} -> {target}: {e}\n\
+             (Windows needs Developer Mode or an elevated shell for this)",
+            at.display()
+        )
+    });
+}
+
 /// What one CLI invocation produced.
 pub struct Outcome {
     pub code: i32,
@@ -179,7 +211,7 @@ impl Fixture {
         if let Some(parent) = p.parent() {
             fs::create_dir_all(parent).expect("create parents");
         }
-        std::os::unix::fs::symlink(target, &p).expect("create symlink");
+        make_symlink(target, &p);
         self
     }
 
@@ -268,7 +300,7 @@ impl Fixture {
         if let Some(parent) = p.parent() {
             fs::create_dir_all(parent).expect("create parents");
         }
-        std::os::unix::fs::symlink(target, &p).expect("create symlink");
+        make_symlink(target, &p);
         self
     }
 
@@ -290,7 +322,9 @@ impl Fixture {
         fs::read_to_string(self.home.join(rel)).unwrap_or_else(|e| panic!("cannot read {rel}: {e}"))
     }
 
-    /// Unix permission bits of a home-relative file.
+    /// Unix permission bits of a home-relative file. Unix-only: Windows access
+    /// is ACL-inherited, so there is no number here to assert on.
+    #[cfg(unix)]
     pub fn mode(&self, rel: &str) -> u32 {
         use std::os::unix::fs::PermissionsExt;
         fs::metadata(self.home.join(rel))
@@ -334,21 +368,41 @@ pub struct HeldLock {
     _file: fs::File,
 }
 
+/// Takes the lock the same way `agent_sync::lock` does on this platform, so the
+/// contention a test proves is the real one: advisory `flock` on Unix, an empty
+/// share mode on Windows. Porting this rather than gating it is what keeps the
+/// five busy-lock tests running on all three legs.
+#[cfg(unix)]
 pub fn hold_lock(path: PathBuf) -> HeldLock {
     use std::os::unix::io::AsRawFd;
 
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).expect("create lock dir");
-    }
-    let file = fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(false)
-        .open(&path)
-        .expect("open lock file");
+    let file = open_lock_file(&path);
     let rc = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
     assert_eq!(rc, 0, "test could not take the lock");
     HeldLock { _file: file }
+}
+
+#[cfg(windows)]
+pub fn hold_lock(path: PathBuf) -> HeldLock {
+    // The open itself is the lock: share_mode(0) makes every competing open
+    // fail with ERROR_SHARING_VIOLATION until this handle closes.
+    HeldLock {
+        _file: open_lock_file(&path),
+    }
+}
+
+fn open_lock_file(path: &Path) -> fs::File {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).expect("create lock dir");
+    }
+    let mut opts = fs::OpenOptions::new();
+    opts.create(true).write(true).truncate(false);
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        opts.share_mode(0);
+    }
+    opts.open(path).expect("open lock file")
 }
 
 fn walk(root: &Path, dir: &Path, acc: &mut BTreeSet<String>) {

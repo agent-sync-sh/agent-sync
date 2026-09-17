@@ -4,6 +4,7 @@
 mod common;
 
 use common::Fixture;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
 /// A canary that must never appear in any output stream.
@@ -43,6 +44,8 @@ fn a_commons_server_reaches_the_agents_config() {
     );
 }
 
+/// Unix-only: the assertion is on mode bits, and Windows has none.
+#[cfg(unix)]
 #[test]
 fn a_new_config_file_is_created_private() {
     let f = machine();
@@ -579,6 +582,9 @@ fn a_non_object_server_map_is_reported_not_overwritten() {
     assert_eq!(f.json(".claude.json")["mcpServers"], "unexpected");
 }
 
+/// Unix-only: the warning keys off mode bits, which is why is_exposed is
+/// always false on Windows -- see src/write.rs.
+#[cfg(unix)]
 #[test]
 fn secrets_landing_in_a_readable_file_are_called_out() {
     let f = machine();

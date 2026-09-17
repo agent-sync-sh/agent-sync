@@ -38,17 +38,17 @@ jobs:
             run_tests: true
           - name: windows
             os: windows-latest
-            # The integration tests do not compile here, let alone run:
-            # tests/common/mod.rs reaches for std::os::unix::fs::symlink and
-            # std::os::unix::io::AsRawFd unguarded, so `cargo test` on Windows
-            # is a build failure, not a vacuous pass. Keeping them Unix-only is
-            # the standing decision (DECISIONS 2026-08-15), so this leg proves
-            # what Windows still can: that the library and binary compile and
-            # lint clean, which is where the real cfg(windows) branches live —
-            # link.rs, lock.rs, write.rs and doctor.rs each fork by platform,
-            # and none of that code is exercised by a Unix-only test run.
-            scope: --lib --bins
-            run_tests: false
+            # The harness is portable now, so this leg runs the suite rather
+            # than only compiling it. Three tests stay cfg(unix) because they
+            # assert on mode bits, which Windows does not have; everything else
+            # runs, including the five that contend on the global lock.
+            #
+            # Creating a symlink on Windows needs Developer Mode or elevation.
+            # GitHub's windows-latest runner is administrative, so it works
+            # there; a developer running the suite locally on an ordinary shell
+            # will see create_symlink's own Developer Mode message.
+            scope: --all-targets
+            run_tests: true
     steps:
       - uses: actions/checkout@v7
       - name: install the rust toolchain
@@ -64,11 +64,6 @@ jobs:
       - name: test
         if: ${{ matrix.run_tests }}
         run: cargo test --locked
-      - name: the windows build links
-        if: ${{ !matrix.run_tests }}
-        # clippy analyses without codegen; this is what catches a Windows
-        # target that type-checks but fails to build or link.
-        run: cargo build --locked --lib --bins
 
   fmt:
     name: rustfmt

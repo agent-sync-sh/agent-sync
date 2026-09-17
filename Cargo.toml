@@ -36,8 +36,12 @@ libc = "0.2"
 
 [dev-dependencies]
 tempfile = "3"
-libc = "0.2"
 toml = "1.1.4"
+
+# Only the Unix-gated tests call into libc (flock in the harness, geteuid in
+# sync_two_phase), mirroring the gating on the real dependency above.
+[target.'cfg(unix)'.dev-dependencies]
+libc = "0.2"
 
 [profile.release]
 strip = true
