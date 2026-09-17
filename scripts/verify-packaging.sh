@@ -156,7 +156,7 @@ if command -v python3 >/dev/null 2>&1; then
       fail "the fallback exited 0; it must fail and explain itself"
     fi
     grep -q 'no prebuilt binary' "$WORK/fb.out" || fail "the fallback does not name the problem"
-    grep -q 'cargo install agentstow' "$WORK/fb.out" || fail "the fallback gives no way forward"
+    grep -q 'cargo install agent-sync-sh' "$WORK/fb.out" || fail "the fallback gives no way forward"
     echo "  $(basename "$fallback"): explains itself and exits non-zero"
   else
     cat "$WORK/wheels.log" >&2

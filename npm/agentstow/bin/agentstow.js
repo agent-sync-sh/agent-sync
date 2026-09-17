@@ -27,7 +27,8 @@ if (!binary) {
   process.stderr.write(
     `agentstow: no prebuilt binary for ${process.platform}-${process.arch}.\n` +
       `Expected the optional dependency ${PACKAGE}.\n` +
-      `If your platform is unsupported, build from source: cargo install agentstow\n` +
+      `agentstow is now agent-sync. If your platform is unsupported, build from\n` +
+      `source: cargo install agent-sync-sh  (details: https://agent-sync.sh)\n` +
       `If the install skipped optional dependencies, reinstall without --no-optional.\n`
   );
   process.exit(1);

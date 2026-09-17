@@ -225,7 +225,9 @@ def main():
         "This is the fallback wheel — pip installs it only when no platform "
         "wheel matches your machine.\\n"
         f"Prebuilt wheels exist for {SUPPORTED}.\\n"
-        "To build from source instead: cargo install agentstow\\n"
+        "agentstow is now agent-sync.\\n"
+        "To build from source instead: cargo install agent-sync-sh\\n"
+        "Details: https://agent-sync.sh\\n"
     )
     return 1
 
