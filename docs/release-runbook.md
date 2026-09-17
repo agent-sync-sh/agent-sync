@@ -329,6 +329,14 @@ are now set (`max-age=31536000; includeSubDomains; preload`). Check progress at
 months**, so every future subdomain of `agent-sync.sh` must be served over
 HTTPS — today only the apex and `www` exist.
 
+The same zone's `min_tls_version` was raised from `1.0` to **`1.2`** on
+2026-09-17, verified by handshake: TLS 1.0 and 1.1 are refused, 1.2 and 1.3 are
+served, and a default client negotiates 1.3 over HTTP/2. This is unrelated to
+preload — Cloudflare's default floor is simply old. Only the `agent-sync.sh`
+zone was changed; the three `agentstow.*` redirect zones still floor at `1.0`,
+which is deliberate, since a client too old for TLS 1.2 should at least still
+reach the 301.
+
 ## Notes
 
 - **2FA.** The account enforces 2FA for publishing. CI is untouched by this:
