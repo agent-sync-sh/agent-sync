@@ -1935,3 +1935,16 @@ quiet it would be to raise our own floor for a reason our users never see.
 
 Its own job rather than a fourth matrix leg: different toolchain, different
 command, and a red MSRV is a different piece of news from a red platform.
+
+**The first version of this job passed without checking anything, and the trap
+is worth recording.** It selected the toolchain with `rustup default 1.97`.
+`rust-toolchain.toml` pins the stable channel, and rustup ranks that file above
+the default setting, so the runner compiled on stable 1.98.1 and reported
+success. The log said so plainly — `rustup default 1.97` on one line, `rustc
+1.98.1` from the next command on another — but nothing failed, and a vacuous
+pass is worse than a red job because it looks like coverage.
+
+The toolchain is therefore named per command as `+1.97`, which is the only form
+that outranks the file, and the job asserts the version it got rather than
+printing it. A check whose whole purpose is to catch silent drift must not be
+able to drift silently itself.

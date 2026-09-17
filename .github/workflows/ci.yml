@@ -58,21 +58,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: install the rust toolchain
+      - name: install the floor toolchain, and prove it is the one in use
         run: |
           # Cargo.toml publishes rust-version = "1.97" to crates.io, where it is
           # a promise: cargo refuses to build the crate on anything older, and
           # anyone on exactly 1.97 has to succeed. Nothing verified that promise
-          # until this job — the other three legs all run stable, so the first
-          # use of a newer feature would have made the published floor a lie
-          # without failing anything.
+          # until this job — the other legs all run stable, so the first use of
+          # a newer feature would have made the published floor a lie without
+          # failing anything.
+          #
+          # The toolchain is named per command with `+1.97`, not selected with
+          # `rustup default`. rust-toolchain.toml pins the stable channel and
+          # outranks the default setting, so the first version of this job set
+          # the default to 1.97, compiled on stable, and passed — a green tick
+          # proving nothing. `+toolchain` is the one form that outranks the file.
           rustup toolchain install 1.97 --profile minimal
-          rustup default 1.97
-          rustc --version
+          rustc +1.97 --version
+          # Asserted, not just printed: the failure mode this job exists to
+          # catch is silently checking the wrong compiler, and that looks
+          # exactly like success.
+          rustc +1.97 --version | grep -q '^rustc 1\.97\.' || {
+            echo "::error::MSRV job is not running 1.97 — it would pass vacuously"
+            exit 1
+          }
       # check, not test, and no --all-targets: the floor is a promise about the
       # library and binary a consumer builds. A dev-dependency raising its own
       # MSRV says nothing about that promise and should not fail this job.
-      - run: cargo check --locked
+      - run: cargo +1.97 check --locked
 
   fmt:
     name: rustfmt
