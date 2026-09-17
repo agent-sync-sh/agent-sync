@@ -1912,3 +1912,26 @@ matrix knobs existed only to describe the gap, so they are deleted rather than
 left as configuration nobody varies. What stays is the operational note: symlink
 creation on Windows needs Developer Mode or elevation, the GitHub runner is
 administrative, and a box that is neither fails the fixtures with OS error 1314.
+
+## 2026-09-17 — The published MSRV is now verified, not just declared
+
+`Cargo.toml` has carried `rust-version = "1.97"` since before the rename, and
+nothing has ever checked it. crates.io treats that field as a promise — cargo
+refuses to build the crate on an older toolchain, so a user on exactly 1.97 has
+to succeed — but all three CI legs run stable, which is 1.98.1 today. The first
+use of a 1.98-only feature would have made the published floor false while
+every check stayed green, and the failure would land on a stranger running
+`cargo install`, phrased as a compile error in our code rather than as a version
+mismatch.
+
+Checked before writing the job: 1.97.1 builds the crate clean today, so this
+codifies a fact rather than fixing a break.
+
+**`cargo check --locked`, not `cargo test --all-targets`.** The floor is a
+promise about the library and binary a *consumer* builds. Dev-dependencies are
+not part of that — one of them raising its own MSRV would fail a broader job
+while saying nothing about whether the promise still holds, and the only way to
+quiet it would be to raise our own floor for a reason our users never see.
+
+Its own job rather than a fourth matrix leg: different toolchain, different
+command, and a red MSRV is a different piece of news from a red platform.

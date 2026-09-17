@@ -53,6 +53,27 @@ jobs:
       - name: test
         run: cargo test --locked
 
+  msrv:
+    name: msrv (1.97)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: install the rust toolchain
+        run: |
+          # Cargo.toml publishes rust-version = "1.97" to crates.io, where it is
+          # a promise: cargo refuses to build the crate on anything older, and
+          # anyone on exactly 1.97 has to succeed. Nothing verified that promise
+          # until this job — the other three legs all run stable, so the first
+          # use of a newer feature would have made the published floor a lie
+          # without failing anything.
+          rustup toolchain install 1.97 --profile minimal
+          rustup default 1.97
+          rustc --version
+      # check, not test, and no --all-targets: the floor is a promise about the
+      # library and binary a consumer builds. A dev-dependency raising its own
+      # MSRV says nothing about that promise and should not fail this job.
+      - run: cargo check --locked
+
   fmt:
     name: rustfmt
     runs-on: ubuntu-latest
