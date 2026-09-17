@@ -101,9 +101,24 @@ impl Outcome {
         self
     }
 
+    /// Output with path separators normalised to `/`.
+    ///
+    /// The CLI prints native paths, so on Windows it reports
+    /// `removed .claude\skills\research` where every test asserts the `/`
+    /// form. The assertions are about *which entry* was reported, not how the
+    /// platform spells a separator, so both sides are normalised before the
+    /// comparison rather than every needle being written twice.
+    fn shaped(text: &str) -> String {
+        if cfg!(windows) {
+            text.replace('\\', "/")
+        } else {
+            text.to_string()
+        }
+    }
+
     pub fn assert_stdout_has(&self, needle: &str) -> &Self {
         assert!(
-            self.stdout.contains(needle),
+            Self::shaped(&self.stdout).contains(&Self::shaped(needle)),
             "expected stdout to contain {needle:?}\nstdout:\n{}",
             self.stdout
         );
@@ -112,7 +127,7 @@ impl Outcome {
 
     pub fn assert_stdout_lacks(&self, needle: &str) -> &Self {
         assert!(
-            !self.stdout.contains(needle),
+            !Self::shaped(&self.stdout).contains(&Self::shaped(needle)),
             "expected stdout NOT to contain {needle:?}\nstdout:\n{}",
             self.stdout
         );
@@ -121,7 +136,7 @@ impl Outcome {
 
     pub fn assert_stderr_has(&self, needle: &str) -> &Self {
         assert!(
-            self.stderr.contains(needle),
+            Self::shaped(&self.stderr).contains(&Self::shaped(needle)),
             "expected stderr to contain {needle:?}\nstderr:\n{}",
             self.stderr
         );
@@ -130,7 +145,7 @@ impl Outcome {
 
     pub fn assert_stderr_lacks(&self, needle: &str) -> &Self {
         assert!(
-            !self.stderr.contains(needle),
+            !Self::shaped(&self.stderr).contains(&Self::shaped(needle)),
             "expected stderr NOT to contain {needle:?}\nstderr:\n{}",
             self.stderr
         );
