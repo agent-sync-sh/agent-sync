@@ -1,10 +1,10 @@
 [package]
 name = "agentstow"
-version = "2.0.5"
+version = "2.0.6"
 edition = "2024"
 rust-version = "1.97"
 license = "MIT"
-description = "Canonical configs, fanned out to all your AI coding agents — sync skills, instructions, MCP, commands, agents and hooks from the Commons, the canonical ~/.agents directory"
+description = "DEPRECATED — agentstow is now agent-sync: install the `agent-sync-sh` crate instead. Canonical configs, fanned out to all your AI coding agents from the Commons, the canonical ~/.agents directory"
 repository = "https://github.com/agentstow/agentstow"
 readme = "README.md"
 keywords = ["ai-agents", "claude-code", "codex", "skills", "symlink"]

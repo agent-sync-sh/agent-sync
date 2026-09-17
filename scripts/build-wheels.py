@@ -44,7 +44,7 @@ TARGETS = {
     "win32-x64": ("x86_64-pc-windows-msvc", "win_amd64"),
 }
 
-SUMMARY = "One canonical .agents/ folder, fanned out to all your AI coding agents"
+SUMMARY = "DEPRECATED — agentstow is now agent-sync: install agent-sync-sh instead"
 
 CLASSIFIERS = [
     "Development Status :: 5 - Production/Stable",

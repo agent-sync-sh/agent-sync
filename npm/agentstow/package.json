@@ -1,7 +1,7 @@
 {
   "name": "agentstow",
   "version": "2.0.5",
-  "description": "Canonical configs, fanned out to all your AI coding agents \u2014 sync skills, instructions, MCP servers, commands, agents and hooks from the Commons, the canonical ~/.agents directory",
+  "description": "DEPRECATED \u2014 agentstow is now agent-sync: install agent-sync-sh instead. Canonical configs, fanned out to all your AI coding agents from the Commons, the canonical ~/.agents directory",
   "license": "MIT",
   "repository": {
     "type": "git",
