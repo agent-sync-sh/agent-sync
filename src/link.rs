@@ -438,6 +438,27 @@ mod tests {
             .file_type()
     }
 
+    /// Windows decomposes an absolute path into Prefix("C:") followed by
+    /// RootDir, so anything that treats the two as one slot keeps only the
+    /// second and silently drops the drive.
+    #[cfg(windows)]
+    #[test]
+    fn normalize_keeps_the_drive_letter() {
+        let out = normalize(Path::new(r"C:\\Users\\x\\file.json"));
+        assert_eq!(
+            out,
+            PathBuf::from(r"C:\\Users\\x\\file.json"),
+            "the drive prefix must survive normalisation"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn resolve_link_keeps_the_drive_letter() {
+        let out = resolve_link(Path::new(r"C:\\dir\\link"), Path::new("real.json"));
+        assert_eq!(out, PathBuf::from(r"C:\\dir\\real.json"));
+    }
+
     #[test]
     fn create_symlink_links_to_a_file() {
         let dir = tempfile::tempdir().unwrap();
