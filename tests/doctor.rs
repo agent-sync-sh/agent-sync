@@ -245,13 +245,20 @@ fn a_missing_source_is_still_listed_and_marked() {
     // machine-bootstrap question "what must I clone?" — so it must name
     // exactly the entries whose repo is not here yet.
     let f = Fixture::new();
-    f.commons_symlink("skills/research", "/nowhere/skills/research");
+    // Built from the fixture rather than spelled as a literal: an absolute
+    // path is native, and Windows resolves a rooted one against the current
+    // drive as the link is created.
+    let source = f.path("nowhere/skills/research");
+    f.commons_symlink("skills/research", &source.display().to_string());
 
     let out = f.run(&["doctor"]);
 
     out.assert_clean()
         .assert_stdout_has("skills        0 (1 sourced)")
-        .assert_stdout_has("  skills/research ← /nowhere/skills/research (source missing)");
+        .assert_stdout_has(&format!(
+            "  skills/research ← {} (source missing)",
+            source.display()
+        ));
 }
 
 #[test]

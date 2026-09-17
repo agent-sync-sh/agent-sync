@@ -60,6 +60,12 @@ fn make_symlink(target: &str, at: &Path) {
 #[cfg(windows)]
 fn make_symlink(target: &str, at: &Path) {
     use std::os::windows::fs::{symlink_dir, symlink_file};
+    // A reparse point stores its target text as given, and Windows does not
+    // accept `/` there the way it does in an ordinary path — a link written
+    // with forward slashes resolves to ERROR_INVALID_NAME. Production never
+    // hits this because it builds targets from `PathBuf` components; the
+    // fixtures spell theirs as literals, so they are translated here.
+    let target = &target.replace('/', "\\");
     let make = if agent_sync::link::resolve_link(at, Path::new(target)).is_dir() {
         symlink_dir
     } else {
