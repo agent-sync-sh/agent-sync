@@ -1980,3 +1980,24 @@ listed `1.0.1` while the *tarball* still 404ed for about a minute, which is a
 sharper version of the lag already in the runbook — the existing wait loop polls
 the packument, which had already gone green. Both notes now say to wait on the
 artifact, not the metadata.
+
+## 2026-09-17 — The shipped Windows binary is verified on real Windows
+
+1.0.1's headline is three Windows fixes, and nothing in the pipeline had ever
+executed the artifact that ships them. CI compiles and tests Windows from source
+on `windows-latest`; `verify-packaging.sh` does its install test on the host,
+which is macOS. Both can pass while the `win32-x64` zip a user downloads is
+broken, so the release was verified on `windows-zx8` directly.
+
+Downloaded anonymously, checksum `ea79c23c…` matching `SHA256SUMS.txt`, and then
+exercised rather than merely version-checked. All three fixes hold in the
+shipped binary: the fan-out link reports `LinkType=SymbolicLink` with the
+`Directory` attribute and `revert` deletes it (1.0.0's `remove_file` gave OS
+error 5 there), and `.claude/CLAUDE.md` reads `@~/.agents/AGENTS.md` with
+forward slashes where 1.0.0 wrote `@~/.agents\AGENTS.md`. The drive-prefix fix
+is corroborated throughout — every path in the run stayed drive-qualified,
+including an error message printing the full `C:\...\agent-sync.toml`.
+
+The runbook's *Verifying* section now carries this as a step, because the gap is
+structural rather than specific to this release: source tests and packaging
+tests can both be green without anyone running the Windows artifact.

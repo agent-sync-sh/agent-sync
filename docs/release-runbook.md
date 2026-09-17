@@ -320,6 +320,29 @@ brew fetch agent-sync
    npm install --no-save agent-sync-sh && ./node_modules/.bin/agent-sync --version
    ```
 
+3. **Run the shipped Windows binary on a real Windows machine.** CI compiles
+   and tests Windows *from source* on `windows-latest`; the packaged `win32-*`
+   artifact is a different thing and nothing else executes it —
+   `verify-packaging.sh` does its install test on the host, which is macOS.
+   Between them they can both pass while the artifact users download is broken.
+   `windows-zx8` is a real Windows 11 box; download the asset anonymously, check
+   it against `SHA256SUMS.txt`, and run it:
+   ```powershell
+   Invoke-WebRequest -UseBasicParsing -OutFile a.zip `
+     https://github.com/agent-sync-sh/agent-sync/releases/download/agent-sync-vX.Y.Z/agent-sync-X.Y.Z-win32-x64.zip
+   (Get-FileHash a.zip -Algorithm SHA256).Hash.ToLower()
+   Expand-Archive a.zip -DestinationPath . -Force; .\agent-sync.exe --version
+   ```
+   For a release that fixes Windows behaviour, exercise the fix itself rather
+   than just `--version`. With `HOME`/`USERPROFILE` pointed at a scratch dir,
+   `init` + `sync` + `revert <agent>` covers the three that 1.0.1 shipped: the
+   fan-out link must report `LinkType=SymbolicLink` with the `Directory`
+   attribute, `revert` must delete it (a file-flavour delete fails with OS error
+   5), and the import line written into `.claude/CLAUDE.md` must read
+   `@~/.agents/AGENTS.md` with forward slashes throughout. `revert` refuses
+   while the target is still enabled, so set `targets.<agent> = false` in
+   `.config/agent-sync/agent-sync.toml` first.
+
 ## Retiring the agentstow line
 
 The npm packages are **deprecated**, which warns and still installs, and their
