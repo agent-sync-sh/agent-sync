@@ -95,6 +95,32 @@ fn explain_privilege(e: io::Error) -> io::Error {
     }
 }
 
+/// Remove the symlink at `path`.
+///
+/// The mirror of [`create_symlink`], and the one place links are removed, so
+/// this platform split lives nowhere else either. Unix unlinks any symlink with
+/// `remove_file`. Windows refuses that for a *directory* symlink — it fails with
+/// ERROR_ACCESS_DENIED — and wants `remove_dir`, which removes the link itself
+/// and never touches what it points at.
+#[cfg(unix)]
+pub fn remove_symlink(path: &Path) -> io::Result<()> {
+    fs::remove_file(path)
+}
+
+#[cfg(windows)]
+pub fn remove_symlink(path: &Path) -> io::Result<()> {
+    use std::os::windows::fs::FileTypeExt;
+
+    let dir_link = fs::symlink_metadata(path)
+        .map(|m| m.file_type().is_symlink_dir())
+        .unwrap_or(false);
+    if dir_link {
+        fs::remove_dir(path)
+    } else {
+        fs::remove_file(path)
+    }
+}
+
 /// Where a symlink at `link` with contents `text` points, lexically.
 pub fn resolve_link(link: &Path, text: &Path) -> PathBuf {
     if text.is_absolute() {
@@ -350,10 +376,10 @@ pub fn apply(item: &Item) -> io::Result<()> {
                 .canonical
                 .as_ref()
                 .expect("stale implies a Commons entry");
-            fs::remove_file(&item.path)?;
+            remove_symlink(&item.path)?;
             create_symlink(text, &item.path)
         }
-        State::Dangling | State::Duplicate => fs::remove_file(&item.path),
+        State::Dangling | State::Duplicate => remove_symlink(&item.path),
         _ => Ok(()),
     }
 }

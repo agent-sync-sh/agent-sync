@@ -13,6 +13,20 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
+/// A path rendered with `/` separators, whatever the platform spells it with.
+///
+/// The comparison partner of [`Fixture::link_text`]: both sides of an assertion
+/// about link shape have to be normalised the same way, or they disagree on
+/// Windows for a reason that has nothing to do with what is being tested.
+pub fn slashed(p: &Path) -> String {
+    let text = p.display().to_string();
+    if cfg!(windows) {
+        text.replace('\\', "/")
+    } else {
+        text
+    }
+}
+
 /// Join a `/`-separated relative path onto `base`, one component at a time.
 ///
 /// Every `rel` in this harness is written with forward slashes for
