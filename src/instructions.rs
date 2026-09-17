@@ -218,7 +218,18 @@ fn import_item(target: &str, path: PathBuf, env: &Env) -> Item {
 fn import_reference(env: &Env) -> String {
     let file = env.commons().join(crate::commons::INSTRUCTIONS);
     match file.strip_prefix(env.home()) {
-        Ok(rel) => format!("~/{}", rel.display()),
+        // The `~/` prefix already commits this reference to forward slashes, and
+        // the line is written into a file another tool parses. Rendering the
+        // remainder natively would emit `~/.agents\AGENTS.md` on Windows --
+        // coherent as neither form, and not what the `~` convention means.
+        Ok(rel) => {
+            let rel: Vec<_> = rel
+                .components()
+                .map(|c| c.as_os_str().to_string_lossy().into_owned())
+                .collect();
+            format!("~/{}", rel.join("/"))
+        }
+        // An absolute path is not a `~` reference and stays native.
         Err(_) => file.display().to_string(),
     }
 }
