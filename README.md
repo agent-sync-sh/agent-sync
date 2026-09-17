@@ -1,13 +1,5 @@
 # agent-sync
 
-> [!IMPORTANT]
-> **agent-sync has been renamed to `agent-sync`.**
-> This is the final release under the old name. The project continues as
-> **`agent-sync-sh`** on crates.io, npm, PyPI and Homebrew — the command you run
-> is `agent-sync`. New home: <https://agent-sync.sh>
->
-> Nothing in your `~/.agents/` Commons changes; it is name-neutral by design.
-
 **One canonical .agents/ folder, fanned out to all your AI coding agents.**
 
 Website and docs: <https://agent-sync.sh/>
