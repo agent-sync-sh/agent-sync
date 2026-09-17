@@ -125,6 +125,24 @@ one more reason not to add platform packages casually.
    than failing.
 4. Verify as described below once the workflow is green.
 
+### npm's trusted publishing has never actually run
+
+**Watch the npm job on the next release — it has published nothing so far.**
+The 1.0.0 workflow run was green, but its npm job did no work: the bootstrap
+publishes had already put 1.0.0 on the registry with real credentials, so all
+seven packages hit the idempotence check and reported `already on the registry;
+skipping` (run `35214086412`, job *publish to npm*). The seven
+trusted-publisher entries on npmjs.com have therefore never authenticated a
+publish, and the first one to exercise them is the next version bump.
+
+crates.io is exercised only as far as minting the OIDC token, which happens in
+a step *before* its own idempotence skip. PyPI is the one channel proven end to
+end — it created the project from the pending publisher on that run.
+
+So a green npm job on the 1.0.0 run is not evidence the path works. If the next
+release fails there, the fix is registry-side and needs no tag move: see the
+re-run note below.
+
 ## Recovering a half-published release
 
 A run can publish some channels and fail before others: 2.0.6 reached
