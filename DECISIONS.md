@@ -1685,3 +1685,36 @@ with Homebrew's `deprecate!`, and the GitHub repo redirecting from the transfer.
 Yanking blocks new dependency resolution and leaves existing lockfiles working,
 so nobody's build breaks today; what it stops is a *new* dependency on a dead
 name.
+
+## 2026-09-17 — All four Cloudflare zones floor at TLS 1.2
+
+While closing out the HSTS work I noticed the `agent-sync.sh` zone still had
+Cloudflare's default `min_tls_version` of `1.0`. That is not an HSTS preload
+requirement, so I raised it as an observation rather than changing it; Frank
+said "raise min TLS to 1.2" and it was set (`aae9c3d`).
+
+I scoped that to `agent-sync.sh` alone and left `agentstow.dev`/`.com`/`.org` at
+`1.0` on the reasoning that a client too old for TLS 1.2 is precisely the client
+that most needs the 301 to keep working — tightening the redirect zones costs
+them the one job they exist to do. Frank reversed it: "raise the redirect zones
+to 1.2". All four zones now floor at 1.2 (`e3d996e`).
+
+**The cost is real and accepted, not overlooked.** A pre-TLS-1.2 client can no
+longer reach the redirect at all; it gets a handshake failure instead of a hop
+to `agent-sync.sh`. The trade is a uniform, auditable floor across every zone we
+own, against a population that in practice is bots and abandoned devices. Anyone
+finding this later should not "restore" `1.0` as a bug fix — reverting is a
+one-line `PATCH` of `min_tls_version` per zone if the call is ever revisited.
+
+Verified on all four zones rather than trusted from four `success: true`
+responses: OpenSSL handshakes pinned per protocol version (1.0 and 1.1 refused,
+1.2 and 1.3 served), and `curl -L` through each `agentstow.*` apex and `www` to
+confirm the 301 still lands on a 200 at `agent-sync.sh`.
+
+The decision arrived through the advisor, so provenance was checked before any
+zone was touched: `herdr agent list` reports `composer.author` and
+`evidence.provenance` per agent, which identified the message as
+`agent_prompt`-delivered, and the advisor's own pane showed Frank's words typed
+at its prompt — against the advisor's stated recommendation to leave the zones
+alone. An advisor fabricating consent has no reason to fabricate it against
+itself.
