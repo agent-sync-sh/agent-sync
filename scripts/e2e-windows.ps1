@@ -5,14 +5,14 @@
 .DESCRIPTION
   Step 3 of the runbook's Verifying section, made runnable. CI compiles and
   tests Windows from source on `windows-latest`, and scripts/verify-packaging.sh
-  does its install test on the host, which is macOS — so between them nothing
+  does its install test on the host, which is macOS - so between them nothing
   ever executes the win32 artifact a user actually downloads. This does.
 
   It fetches the release asset anonymously, checks it against SHA256SUMS.txt,
   and drives the whole journey: init, doctor, sync, mcp, status, adopt, revert.
 
   Three of the assertions are the Windows bugs fixed in 1.0.1 and are marked as
-  such — directory-symlink flavour on create, directory-symlink deletion on
+  such - directory-symlink flavour on create, directory-symlink deletion on
   revert (1.0.0 failed with OS error 5), and forward slashes in the `~` import
   line (1.0.0 wrote `@~/.agents\AGENTS.md`).
 
@@ -22,11 +22,11 @@
 
 .NOTES
   Requires:
-    * a real Windows box — this is exactly what a CI runner does not prove;
+    * a real Windows box - this is exactly what a CI runner does not prove;
     * Developer Mode OR an elevated shell, or every symlink fails with OS
       error 1314 and the run is meaningless rather than merely red;
     * outbound HTTPS to github.com. No toolchain, no npm, no checkout of the
-      crate — it tests the shipped binary, not the source.
+      crate - it tests the shipped binary, not the source.
 
   Isolation: everything happens under a scratch HOME in $env:TEMP. The script
   refuses to start if that redirection is not honoured, and fingerprints the
@@ -71,7 +71,7 @@ $realCommons = Join-Path $realProfile ".agents"
 $beforeClaude = Fingerprint $realClaude
 $beforeCommons = Fingerprint $realCommons
 
-"agent-sync e2e — $Tag ($asset) on $env:COMPUTERNAME"
+"agent-sync e2e - $Tag ($asset) on $env:COMPUTERNAME"
 "real profile guarded: $realClaude, $realCommons"
 ""
 
@@ -82,10 +82,16 @@ New-Item -ItemType Directory -Path $root | Out-Null
 "=== 0. fetch and verify the published artifact ==="
 $zip = Join-Path $root $asset
 Invoke-WebRequest -UseBasicParsing -OutFile $zip "$base/$asset"
-$sums = (Invoke-WebRequest -UseBasicParsing "$base/SHA256SUMS.txt").Content
-$want = ($sums -split "`n" | Where-Object { $_ -match [regex]::Escape($asset) }) -split '\s+' | Select-Object -First 1
+# Downloaded to a file rather than read from .Content: GitHub serves
+# SHA256SUMS.txt as application/octet-stream, and Windows PowerShell 5.1 hands
+# back a byte[] for a non-text content type, which -split silently turns into
+# nothing at all.
+$sumsFile = Join-Path $root "SHA256SUMS.txt"
+Invoke-WebRequest -UseBasicParsing -OutFile $sumsFile "$base/SHA256SUMS.txt"
+$line = Select-String -Path $sumsFile -SimpleMatch $asset | Select-Object -First 1
+$want = if ($line) { ($line.Line.Trim() -split '\s+')[0].ToLower() } else { $null }
 $got = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
-Check "checksum matches SHA256SUMS.txt" ($want -and $got -eq $want.ToLower()) "want=$want got=$got"
+Check "checksum matches SHA256SUMS.txt" ($want -and $got -eq $want) "want=$want got=$got"
 Expand-Archive $zip -DestinationPath $root -Force
 $exe = Join-Path $root "agent-sync.exe"
 Check "the archive contains agent-sync.exe" (Test-Path $exe)
@@ -220,7 +226,7 @@ Check "real ~/.agents unchanged" ((Fingerprint $realCommons) -eq $beforeCommons)
 
 ""
 "=================================================="
-"e2e on real Windows — shipped $Tag binary"
+"e2e on real Windows - shipped $Tag binary"
 "  PASSED: $script:pass"
 "  FAILED: $script:fail"
 "=================================================="
