@@ -8,28 +8,28 @@
 class AgentSync < Formula
   desc "One canonical .agents/ folder, fanned out to all your AI coding agents"
   homepage "https://agent-sync.sh"
-  version "1.0.0"
+  version "1.0.1"
   license "MIT"
 
   on_macos do
     on_arm do
-      url "https://github.com/agent-sync-sh/agent-sync/releases/download/agent-sync-v1.0.0/agent-sync-1.0.0-darwin-arm64.tar.gz"
-      sha256 "b352b234fb99f30994ac575d6a2d701709aced6c8697b631ae39944145dcd5de"
+      url "https://github.com/agent-sync-sh/agent-sync/releases/download/agent-sync-v1.0.1/agent-sync-1.0.1-darwin-arm64.tar.gz"
+      sha256 "b69e936290685980cf686ae67f05028150f73657b43419a2adb1d93986f4e42e"
     end
     on_intel do
-      url "https://github.com/agent-sync-sh/agent-sync/releases/download/agent-sync-v1.0.0/agent-sync-1.0.0-darwin-x64.tar.gz"
-      sha256 "51de6ae6a043bf4fef9026bc25ed1e4d8e14256bcc0a04075ee55277963b2105"
+      url "https://github.com/agent-sync-sh/agent-sync/releases/download/agent-sync-v1.0.1/agent-sync-1.0.1-darwin-x64.tar.gz"
+      sha256 "94aacce129a0c937375e2eb9a35476679ed6cbcc70962173f827567c040d1786"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/agent-sync-sh/agent-sync/releases/download/agent-sync-v1.0.0/agent-sync-1.0.0-linux-arm64.tar.gz"
-      sha256 "e6a25d53f3f661d6b6c87cb3eae69530ac43c4ff070311d42193a0dcbb588c26"
+      url "https://github.com/agent-sync-sh/agent-sync/releases/download/agent-sync-v1.0.1/agent-sync-1.0.1-linux-arm64.tar.gz"
+      sha256 "2c9e648f5790888f7e96c406b306228963cfd6c92e8e12c293a7e9a0abd8fa13"
     end
     on_intel do
-      url "https://github.com/agent-sync-sh/agent-sync/releases/download/agent-sync-v1.0.0/agent-sync-1.0.0-linux-x64.tar.gz"
-      sha256 "949e80be56c982d949be900ab5725523230fcde90aecd9037bf0d106e6ec9721"
+      url "https://github.com/agent-sync-sh/agent-sync/releases/download/agent-sync-v1.0.1/agent-sync-1.0.1-linux-x64.tar.gz"
+      sha256 "a7abd28bfc418a860173c455533aba60c78c7afd6f1091b4096db5cab6a2232c"
     end
   end
 
