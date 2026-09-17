@@ -304,13 +304,16 @@ forward.
 
 `cargo yank` was **done on 2026-09-17**, ahead of the schedule this section
 originally set, by the owner's explicit decision rather than by the condition
-below. All seven 2.0.x versions (2.0.0 through 2.0.6) are yanked:
+below. **All thirteen published versions are yanked** — 1.0.0, 1.1.0-1.1.3,
+1.2.0 and 2.0.0-2.0.6 — in two passes, 2.0.x first and 1.x once the owner
+confirmed the whole line should go:
 
-    cargo yank --version 2.0.6 agentstow   # and 2.0.5 ... 2.0.0
+    cargo yank --version <v> agentstow     # for each of the thirteen
 
-The **1.x line (1.0.0, 1.1.0-1.1.3, 1.2.0) is deliberately still un-yanked** —
-the decision named 2.0.x. Yank it too if the whole line should go; nothing
-depends on the order.
+Confirmed against the index: every line of
+<https://index.crates.io/ag/en/agentstow> reads `"yanked":true`. Nothing under
+`agent-sync-sh` was touched. To undo any of it: `cargo yank --undo --version <v>
+agentstow`.
 
 Yanking blocks new dependency resolution but leaves existing `Cargo.lock` files
 working, so it is the mild end of retirement. `Formula/agentstow.rb` is already

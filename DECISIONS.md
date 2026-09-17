@@ -1661,3 +1661,27 @@ added later, not a one-time switch.
 
 The local `agentstow` installs are gone from this machine (Homebrew formula and
 tap, and a stale `cargo install` copy at 2.0.1). `agent-sync` stays installed.
+
+## 2026-09-17 — The rest of the agentstow line is yanked too
+
+Supersedes the previous entry's scope. Asked whether the 1.x line should follow
+2.0.x, Frank said "yank agentstow 1.x", so 1.0.0, 1.1.0-1.1.3 and 1.2.0 are
+yanked as well. **All thirteen published agentstow versions are now yanked**,
+verified against the sparse index rather than from the seven exit codes: every
+line of `https://index.crates.io/ag/en/agentstow` reads `"yanked":true`.
+`agent-sync-sh` is untouched.
+
+The previous entry deliberately stopped at seven because the decision it was
+carrying named 2.0.x, and a relay had widened that to "every published version".
+Splitting it cost one extra round trip and no rework — `cargo yank` is one
+command per version either way, and `--undo` reverses it — which is the whole
+argument for not guessing wide on a registry write. Had the narrow reading been
+wrong, the fix was six commands; had the wide one been wrong, the fix was six
+commands *and* an unasked-for change already visible to users.
+
+Nothing about the old line is left in a half state: npm deprecated with a notice
+naming `agent-sync-sh`, the crate fully yanked, `Formula/agentstow.rb` frozen
+with Homebrew's `deprecate!`, and the GitHub repo redirecting from the transfer.
+Yanking blocks new dependency resolution and leaves existing lockfiles working,
+so nobody's build breaks today; what it stops is a *new* dependency on a dead
+name.
