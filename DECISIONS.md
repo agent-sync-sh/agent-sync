@@ -1426,3 +1426,65 @@ already published, so nothing needs the old bindings again.
 The working copy is still at `~/github.com/agentstow/agentstow` on this machine.
 Moving it to match the new name is cosmetic and was not done mid-session,
 because it would pull the directory out from under the running shell.
+
+## 2026-09-17 — The release workflow triggers on `agent-sync-v*` alone
+
+Decision A settled that the new line is tagged `agent-sync-v*`, because `v1.0.0`
+already exists on the retired line and backs a published Release the Homebrew
+formula links to. What that decision did not spell out is whether the workflow
+should keep accepting `v*` as well, and it must not.
+
+`Cargo.toml` now says `1.0.0`. The `guard` job passes when the tag equals the
+Cargo version, so a trigger that still matched `v*` would let the *existing*
+`v1.0.0` tag — which points at agentstow 1.0.0 from August — satisfy the guard
+and publish whatever that commit contains as `agent-sync-sh` 1.0.0. The guard is
+therefore written as the exact string `agent-sync-v$version` rather than a
+prefix strip, and the six `startsWith(github.ref, …)` gates name the full
+`refs/tags/agent-sync-v` prefix. `scripts/update-formula.sh` strips both
+prefixes in turn, because it is also the manual fallback for the old line.
+
+The retired line keeps no trigger of its own. 2.0.6 was the farewell and is
+published; there is nothing left to replay.
+
+## 2026-09-17 — `Formula/agentstow.rb` is frozen and deprecated, not deleted
+
+`scripts/update-formula.sh` now generates `Formula/agent-sync.rb`, so the old
+formula stops being regenerated. Deleting it was the obvious move and is wrong:
+the tap is this repository, so everyone who ran `brew install agentstow` still
+has it tapped, and a missing formula makes `brew upgrade` fail with "No
+available formula" — an error that says nothing about where the project went.
+
+It stays pinned at 2.0.6 with Homebrew's own `deprecate!`, which still installs
+and prints the reason. The rename is the reason, so it is written there in full.
+
+## 2026-09-17 — The tap job stages the formula before diffing it
+
+`git diff --quiet -- Formula/agent-sync.rb` is how the job decided whether
+anything moved. On the first agent-sync release that file does not exist yet,
+and a worktree diff does not see an untracked path at all: the job would have
+generated the formula, reported "the formula already points at …", and exited 0
+without committing it. The tap would then have served no agent-sync formula
+while the run was green — the same shape of failure as the draft-Release trap
+above, where success is reported and the install path is broken.
+
+It now runs `git add` first and diffs `--cached`.
+
+## 2026-09-17 — The runbook's prerequisites were rewritten, not renamed
+
+Every other file in this rename was mechanically renamed. The runbook's
+*Prerequisites — both settled 2026-08-13* section could not be, because the
+statements it makes are about the old names: the `@agentstow` scope was claimed
+and `agentstow@0.0.1` was published, and neither is true of `@agent-sync-sh`.
+Renaming the words would have produced a document asserting that the bootstrap
+was already done, which is exactly the thing the next step has to do.
+
+It is replaced by *Bootstrapping the names*, which states the rule that makes
+that step necessary — trusted publishing authenticates a publish but never
+creates a package, so crates.io and npm each need one credentialed publish
+first, while PyPI's pending publisher does not. The lessons worth keeping from
+the old section were kept: a passing `npm publish --dry-run` proves nothing
+about whether the scope exists, and npm's 2FA applies to writes.
+
+The PyPI environment's `agent-sync-v*` tag policy is called out as the quiet
+one. It is registry-side, so nothing in this repo can assert it, and a stale
+policy does not fail loudly — the job simply never receives a credential.
