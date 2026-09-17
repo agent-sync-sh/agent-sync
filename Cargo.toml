@@ -4,7 +4,7 @@
 # suffix is the domain and the org, so `cargo install agent-sync-sh` reads as
 # "the thing from agent-sync.sh" — see DECISIONS.md, 2026-09-16.
 name = "agent-sync-sh"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 rust-version = "1.97"
 license = "MIT"
