@@ -199,14 +199,9 @@ jobs:
           # unsupported ones regress, so assert it rather than eyeball the list.
           test -f wheelhouse/agentstow-*-py3-none-any.whl
       - name: the fallback explains itself rather than crashing
-        run: |
-          set -euo pipefail
-          python -m venv /tmp/fallbacktest
-          /tmp/fallbacktest/bin/pip install --no-index wheelhouse/agentstow-*-py3-none-any.whl
-          out="$(/tmp/fallbacktest/bin/agentstow 2>&1 || true)"
-          echo "$out"
-          echo "$out" | grep -q 'no prebuilt binary' || { echo "fallback message missing"; exit 1; }
-          echo "$out" | grep -q 'cargo install agent-sync-sh' || { echo "no way forward given"; exit 1; }
+        # Same script the local gate runs, so a message change cannot pass
+        # verify-packaging.sh and still fail here.
+        run: scripts/check-fallback-wheel.sh wheelhouse/agentstow-*-py3-none-any.whl
       - name: the linux wheel installs and runs
         # This runner is linux-x64, so the manylinux wheel is the one target
         # whose install can actually be exercised here. It is also the check

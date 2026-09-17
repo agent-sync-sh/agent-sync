@@ -150,13 +150,12 @@ if command -v python3 >/dev/null 2>&1; then
       || fail "pip chose the fallback over the platform wheel"
     echo "  pip prefers the platform wheel over py3-none-any"
 
-    python3 -m venv "$WORK/fbvenv" >/dev/null 2>&1 || fail "could not create a venv"
-    "$WORK/fbvenv/bin/pip" install --quiet --no-index "$fallback" || fail "pip install of the fallback failed"
-    if "$WORK/fbvenv/bin/agentstow" >"$WORK/fb.out" 2>&1; then
-      fail "the fallback exited 0; it must fail and explain itself"
+    # Shared with the wheels job in release.yml so the two cannot drift.
+    if ! "$ROOT/scripts/check-fallback-wheel.sh" "$fallback" "$WORK/fbvenv" \
+        >"$WORK/fb.out" 2>&1; then
+      cat "$WORK/fb.out" >&2
+      fail "the fallback wheel does not explain itself"
     fi
-    grep -q 'no prebuilt binary' "$WORK/fb.out" || fail "the fallback does not name the problem"
-    grep -q 'cargo install agent-sync-sh' "$WORK/fb.out" || fail "the fallback gives no way forward"
     echo "  $(basename "$fallback"): explains itself and exits non-zero"
   else
     cat "$WORK/wheels.log" >&2
