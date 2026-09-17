@@ -1551,3 +1551,46 @@ and every flag tried to override it — `--force-dark-mode=0`,
 `--force-prefers-color-scheme`, a `color-scheme: light only` style — left the
 dark theme in place. A recipe whose output depends on a desktop setting is a
 trap.
+
+## 2026-09-17 — The formula gets its `version` stanza back: `agent-sync-v*` makes Homebrew read every release as 64
+
+The 2026-08-16 entry recorded that `brew audit` "rejects a `version` stanza as
+redundant when the version is scannable from the asset URL, so the formula omits
+it". That was true and tested — under plain `v*` tags. The rename to
+`agent-sync-v*` invalidated it, and the failure is silent in both directions.
+
+Homebrew parses the version out of the asset URL. `2.0.6` never came from the
+file stem; it came from the `/v2.0.6/` path segment. The `agent-sync-v` prefix
+defeats that GitHub-URL parser, so the stem parser runs instead and takes the
+trailing digits of the target triple. Checked against the installed Homebrew
+7.0.3 rather than reasoned about:
+
+    agent-sync-v1.0.0/agent-sync-1.0.0-darwin-arm64.tar.gz  ->  64
+    agent-sync-v1.0.0/agent-sync-1.0.0-linux-x64.tar.gz     ->  64
+    v2.0.6/agentstow-2.0.6-darwin-arm64.tar.gz              ->  2.0.6
+    v1.0.0/agent-sync-1.0.0-darwin-arm64.tar.gz             ->  1.0.0
+
+Nothing errors. The `tap` job goes green and commits the file, `brew install`
+works, and `brew info` says 64. Two things break quietly: the generated `test do`
+block asserts `agent-sync #{version}`, so `brew test` fails against a binary that
+correctly prints `1.0.0`; and because all four formula targets end in `64`, every
+future release also parses as 64, so `brew upgrade` is permanently "already up to
+date". This is a fifth tag-parsing site, beyond the four the 2026-09-16
+tag-namespace entry enumerated — it lives in Homebrew, not in this repo, which is
+why a sweep of the tree could not have found it.
+
+Restoring the stanza is safe rather than a trade. `resource_auditor.rb` raises
+the redundancy problem only when `Version.detect(url).to_s == version_text.to_s`;
+64 never equals the real version, so the rule cannot fire. The audit objection
+that removed the stanza was conditional all along, and the condition no longer
+holds.
+
+Recorded alongside it, because it changes what the first tag proves rather than
+what it does: the bootstrap publishes already put 1.0.0 on crates.io and on all
+seven npm packages, so both jobs take their idempotence skip. crates.io still
+mints its OIDC token in a step *before* the skip, so a bad trust entry there
+fails loudly; npm's exchange happens inside `npm publish`, which never runs, so
+the seven npm trust entries stay unexercised until 1.0.1. The tagged run is an
+end-to-end proof of PyPI only. The runbook also gains a line saying a
+registry-side failure is a `gh run rerun --failed`, not a tag move — the tag move
+is what springs the draft-Release trap documented just below it.

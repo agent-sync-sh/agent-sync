@@ -136,6 +136,14 @@ publish job is idempotent (crates.io checks the index, npm runs `npm view` per
 package, PyPI passes `skip-existing`), so the channels already done skip
 themselves and only the missing one publishes.
 
+**A registry-side failure needs no tag move at all.** When the fix lives outside
+the repository — a trusted-publisher entry, an environment's tag policy, a
+credential — `gh run rerun <run-id> --failed` replays just the failed jobs under
+the *original* event, so `github.event_name == 'push'` still holds and the
+publish jobs fire. Only a fix that changes the commit needs the tag moved, and
+moving it is what springs the draft-Release trap below. Reach for the re-run
+first.
+
 Moving a tag has one trap that does not announce itself. **Deleting a tag
 demotes its GitHub Release to a draft**, and a draft's assets return 404 to
 everyone — which breaks `brew install`, because the formula points at those
