@@ -1,7 +1,7 @@
 //! Link identity: the fan-out engine shared by every symlink family.
 //!
 //! Ownership is established by where a link *points*, not by any bookkeeping
-//! (ADR-0001): a symlink resolving into the Commons is agentstow's to canonicalise
+//! (ADR-0001): a symlink resolving into the Commons is agent-sync's to canonicalise
 //! or prune, and anything else — a link elsewhere, a real file or directory — is
 //! left exactly as found.
 //!
@@ -132,7 +132,7 @@ pub fn relative_from(base: &Path, target: &Path) -> PathBuf {
     out
 }
 
-/// What agentstow found at one destination path, before deciding anything.
+/// What agent-sync found at one destination path, before deciding anything.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Found {
     Absent,
@@ -246,7 +246,7 @@ impl State {
     }
 }
 
-/// One name in one Target directory, and what agentstow makes of it.
+/// One name in one Target directory, and what agent-sync makes of it.
 #[derive(Debug, Clone)]
 pub struct Item {
     pub name: String,
@@ -355,7 +355,7 @@ pub fn apply(item: &Item) -> io::Result<()> {
 /// Survey a legacy fan-out directory — one a Native agent still reads beside
 /// the Commons. Prune-only: every link of ours, live or dangling, is a
 /// [`State::Duplicate`] to remove; Foreign links and real objects are not even
-/// named, because a directory agentstow no longer fans out into is not its
+/// named, because a directory agent-sync no longer fans out into is not its
 /// business to narrate — only to leave. An absent directory surveys empty,
 /// and nothing here ever creates one.
 pub fn survey_legacy(target_dir: &Path, commons: &Path) -> Vec<Item> {

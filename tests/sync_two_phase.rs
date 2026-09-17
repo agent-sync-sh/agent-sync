@@ -20,7 +20,7 @@ fn machine() -> Fixture {
     f
 }
 
-/// The home tree minus agentstow's own state directory: the lock file is the
+/// The home tree minus agent-sync's own state directory: the lock file is the
 /// one legitimate write a refused sync still makes.
 fn tree_sans_state(f: &Fixture) -> BTreeSet<String> {
     f.tree()

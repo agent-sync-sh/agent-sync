@@ -4,10 +4,10 @@
 #   scripts/build-npm.sh <out-dir> [target ...]
 #
 # Each target is a node-style "<platform>-<arch>" name. The binary for a target
-# is expected at target/<rust-triple>/release/agentstow, except for the host
+# is expected at target/<rust-triple>/release/agent-sync, except for the host
 # target in a plain `cargo build --release`, which is also accepted.
 #
-# Produces <out-dir>/agentstow (the launcher) and <out-dir>/<target> packages.
+# Produces <out-dir>/agent-sync-sh (the launcher) and <out-dir>/<target> packages.
 set -euo pipefail
 
 OUT="${1:?usage: build-npm.sh <out-dir> [target ...]}"
@@ -39,8 +39,8 @@ exe_for()  { case "$1" in win32-*) echo .exe ;; *) echo "" ;; esac; }
 mkdir -p "$OUT"
 
 # The launcher, with its version and optional dependencies pinned to VERSION.
-cp -R "$ROOT/npm/agentstow" "$OUT/agentstow"
-node - "$OUT/agentstow/package.json" "$VERSION" <<'JS'
+cp -R "$ROOT/npm/agent-sync-sh" "$OUT/agent-sync-sh"
+node - "$OUT/agent-sync-sh/package.json" "$VERSION" <<'JS'
 const fs = require("node:fs");
 const [file, version] = process.argv.slice(2);
 const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
@@ -50,23 +50,23 @@ for (const name of Object.keys(pkg.optionalDependencies ?? {})) {
 }
 fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
 JS
-cp "$ROOT/README.md" "$OUT/agentstow/README.md" 2>/dev/null || true
+cp "$ROOT/README.md" "$OUT/agent-sync-sh/README.md" 2>/dev/null || true
 
 for target in "${TARGETS[@]}"; do
   triple="$(rust_triple "$target")"
   exe="$(exe_for "$target")"
-  binary="$ROOT/target/$triple/release/agentstow$exe"
+  binary="$ROOT/target/$triple/release/agent-sync$exe"
   # A host-target build without --target lands in target/release.
-  [ -f "$binary" ] || binary="$ROOT/target/release/agentstow$exe"
+  [ -f "$binary" ] || binary="$ROOT/target/release/agent-sync$exe"
   if [ ! -f "$binary" ]; then
-    echo "missing binary for $target (looked for target/$triple/release/agentstow$exe)" >&2
+    echo "missing binary for $target (looked for target/$triple/release/agent-sync$exe)" >&2
     exit 1
   fi
 
   dir="$OUT/$target"
   mkdir -p "$dir/bin"
-  cp "$binary" "$dir/bin/agentstow$exe"
-  chmod +x "$dir/bin/agentstow$exe"
+  cp "$binary" "$dir/bin/agent-sync$exe"
+  chmod +x "$dir/bin/agent-sync$exe"
 
   node - "$dir/package.json" "$target" "$VERSION" "$(node_os "$target")" "$(node_cpu "$target")" "$exe" <<'JS'
 const fs = require("node:fs");
@@ -75,16 +75,16 @@ fs.writeFileSync(
   file,
   JSON.stringify(
     {
-      name: `@agentstow/${target}`,
+      name: `@agent-sync-sh/${target}`,
       version,
-      description: `agentstow binary for ${target}`,
+      description: `agent-sync binary for ${target}`,
       license: "MIT",
-      repository: { type: "git", url: "git+https://github.com/agentstow/agentstow.git" },
+      repository: { type: "git", url: "git+https://github.com/agent-sync-sh/agent-sync.git" },
       // npm installs an optional dependency only when os and cpu match, which
       // is what keeps all but one of these off any given machine.
       os: [os],
       cpu: [cpu],
-      files: [`bin/agentstow${exe}`],
+      files: [`bin/agent-sync${exe}`],
       preferUnplugged: true,
     },
     null,

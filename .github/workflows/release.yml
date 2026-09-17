@@ -3,14 +3,14 @@ name: release
 # Cross-builds every supported target once, then packages that same binary
 # every way it ships — npm packages, PyPI wheels, release tarballs, and the
 # Homebrew formula — proving each installs before anything is published. On a
-# v* tag push, and only then, the publish jobs push to crates.io, npm and PyPI
-# via OIDC trusted publishing: no long-lived tokens, credentials minted per
+# release tag push, and only then, the publish jobs push to crates.io, npm and
+# PyPI via OIDC trusted publishing: no long-lived tokens, credentials minted per
 # run. The one-time registry-side setup and the manual fallback live in
 # docs/release-runbook.md.
 
 on:
   push:
-    tags: ["v*"]
+    tags: ["agent-sync-v*"]
   workflow_dispatch:
   pull_request:
     paths:
@@ -30,7 +30,7 @@ jobs:
           - target: darwin-arm64
             triple: aarch64-apple-darwin
             runner: macos-latest
-            bin: agentstow
+            bin: agent-sync
             run_check: true
           - target: darwin-x64
             triple: x86_64-apple-darwin
@@ -38,22 +38,22 @@ jobs:
             # with the SDK already on the runner, and GitHub has retired the
             # macos-13 Intel image — a job asking for it queues forever.
             runner: macos-latest
-            bin: agentstow
+            bin: agent-sync
             run_check: true
           - target: linux-x64
             triple: x86_64-unknown-linux-gnu
             runner: ubuntu-latest
-            bin: agentstow
+            bin: agent-sync
             run_check: true
           - target: linux-arm64
             triple: aarch64-unknown-linux-gnu
             runner: ubuntu-24.04-arm
-            bin: agentstow
+            bin: agent-sync
             run_check: true
           - target: win32-x64
             triple: x86_64-pc-windows-msvc
             runner: windows-latest
-            bin: agentstow.exe
+            bin: agent-sync.exe
             run_check: true
           - target: win32-arm64
             triple: aarch64-pc-windows-msvc
@@ -61,7 +61,7 @@ jobs:
             # like darwin-x64 above — except an x64 host cannot execute the
             # result, so the run check is skipped for this target only.
             runner: windows-latest
-            bin: agentstow.exe
+            bin: agent-sync.exe
             run_check: false
     steps:
       - uses: actions/checkout@v7
@@ -111,18 +111,18 @@ jobs:
             exe=""; case "$target" in win32-*) exe=".exe" ;; esac
             dir="target/${TRIPLE[$target]}/release"
             mkdir -p "$dir"
-            cp "artifacts/binary-$target/agentstow$exe" "$dir/agentstow$exe"
-            chmod +x "$dir/agentstow$exe"
+            cp "artifacts/binary-$target/agent-sync$exe" "$dir/agent-sync$exe"
+            chmod +x "$dir/agent-sync$exe"
           done
       - name: assemble the npm packages
         run: scripts/build-npm.sh dist
       - name: every package is present
         run: |
           set -euo pipefail
-          for expected in agentstow darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-arm64 win32-x64; do
+          for expected in agent-sync-sh darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-arm64 win32-x64; do
             test -f "dist/$expected/package.json" || { echo "missing dist/$expected"; exit 1; }
           done
-          test -x dist/linux-x64/bin/agentstow
+          test -x dist/linux-x64/bin/agent-sync
       - name: no install hooks
         run: |
           if grep -RlE '"(postinstall|preinstall|install)"' dist; then
@@ -135,9 +135,9 @@ jobs:
           for dir in dist/*; do (cd "$dir" && npm pack --pack-destination "$GITHUB_WORKSPACE/tarballs"); done
           cd consumer && npm init -y >/dev/null
           npm install --offline --no-audit --no-fund \
-            "$GITHUB_WORKSPACE"/tarballs/agentstow-linux-x64-*.tgz \
-            "$GITHUB_WORKSPACE"/tarballs/agentstow-[0-9]*.tgz
-          ./node_modules/.bin/agentstow --version
+            "$GITHUB_WORKSPACE"/tarballs/agent-sync-sh-linux-x64-*.tgz \
+            "$GITHUB_WORKSPACE"/tarballs/agent-sync-sh-[0-9]*.tgz
+          ./node_modules/.bin/agent-sync --version
       - name: dry-run publish
         run: for dir in dist/*; do (cd "$dir" && npm publish --dry-run); done
       - uses: actions/upload-artifact@v7
@@ -183,8 +183,8 @@ jobs:
             exe=""; case "$target" in win32-*) exe=".exe" ;; esac
             dir="target/${TRIPLE[$target]}/release"
             mkdir -p "$dir"
-            cp "artifacts/binary-$target/agentstow$exe" "$dir/agentstow$exe"
-            chmod +x "$dir/agentstow$exe"
+            cp "artifacts/binary-$target/agent-sync$exe" "$dir/agent-sync$exe"
+            chmod +x "$dir/agent-sync$exe"
           done
       - name: assemble the wheels
         run: scripts/build-wheels.py wheelhouse
@@ -197,11 +197,11 @@ jobs:
           fi
           # Its absence is silent: supported platforms keep working and only
           # unsupported ones regress, so assert it rather than eyeball the list.
-          test -f wheelhouse/agentstow-*-py3-none-any.whl
+          test -f wheelhouse/agent_sync_sh-*-py3-none-any.whl
       - name: the fallback explains itself rather than crashing
         # Same script the local gate runs, so a message change cannot pass
         # verify-packaging.sh and still fail here.
-        run: scripts/check-fallback-wheel.sh wheelhouse/agentstow-*-py3-none-any.whl
+        run: scripts/check-fallback-wheel.sh wheelhouse/agent_sync_sh-*-py3-none-any.whl
       - name: the linux wheel installs and runs
         # This runner is linux-x64, so the manylinux wheel is the one target
         # whose install can actually be exercised here. It is also the check
@@ -209,9 +209,9 @@ jobs:
         run: |
           set -euo pipefail
           python -m venv /tmp/wheeltest
-          /tmp/wheeltest/bin/pip install --no-index wheelhouse/agentstow-*manylinux*x86_64.whl
-          test -x /tmp/wheeltest/bin/agentstow
-          /tmp/wheeltest/bin/agentstow --version
+          /tmp/wheeltest/bin/pip install --no-index wheelhouse/agent_sync_sh-*manylinux*x86_64.whl
+          test -x /tmp/wheeltest/bin/agent-sync
+          /tmp/wheeltest/bin/agent-sync --version
       - name: metadata passes the check PyPI runs on upload
         run: |
           python -m pip install --quiet twine
@@ -223,17 +223,17 @@ jobs:
 
   guard:
     name: tag matches the crate version
-    # Any run sitting on a v* tag, pushed or dispatched — the registry publish
+    # Any run sitting on a release tag, pushed or dispatched — the registry publish
     # jobs below stay push-only, but the binary and formula jobs can be
     # replayed at a tag without moving it.
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/agent-sync-v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - run: |
           version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "tag $GITHUB_REF_NAME does not match Cargo.toml version $version"
+          if [ "agent-sync-v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME is not agent-sync-v$version, the Cargo.toml version"
             exit 1
           fi
 
@@ -243,7 +243,7 @@ jobs:
     # a single point of failure for everyone not building from source. They are
     # already built by the time this runs; attaching them costs one job and is
     # what the Homebrew tap installs from.
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/agent-sync-v')
     needs: [build, guard]
     runs-on: ubuntu-latest
     permissions:
@@ -256,22 +256,22 @@ jobs:
       - name: one archive per target, plus the checksums
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
+          version="${GITHUB_REF_NAME#agent-sync-v}"
           mkdir -p dist stage
           # tar for the unix targets — the archive holds the bare binary, which
-          # is what the formula's `bin.install "agentstow"` expects.
+          # is what the formula's `bin.install "agent-sync"` expects.
           for target in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
-            install -m 755 "artifacts/binary-$target/agentstow" stage/agentstow
-            tar -C stage -czf "dist/agentstow-$version-$target.tar.gz" agentstow
-            rm -f stage/agentstow
+            install -m 755 "artifacts/binary-$target/agent-sync" stage/agent-sync
+            tar -C stage -czf "dist/agent-sync-$version-$target.tar.gz" agent-sync
+            rm -f stage/agent-sync
           done
           for target in win32-x64 win32-arm64; do
-            install -m 755 "artifacts/binary-$target/agentstow.exe" stage/agentstow.exe
-            (cd stage && zip -q "$GITHUB_WORKSPACE/dist/agentstow-$version-$target.zip" agentstow.exe)
-            rm -f stage/agentstow.exe
+            install -m 755 "artifacts/binary-$target/agent-sync.exe" stage/agent-sync.exe
+            (cd stage && zip -q "$GITHUB_WORKSPACE/dist/agent-sync-$version-$target.zip" agent-sync.exe)
+            rm -f stage/agent-sync.exe
           done
           # Named glob, not `*`: SHA256SUMS.txt must not checksum itself.
-          (cd dist && sha256sum agentstow-* > SHA256SUMS.txt)
+          (cd dist && sha256sum agent-sync-* > SHA256SUMS.txt)
           cat dist/SHA256SUMS.txt
       - name: create the release, or replace the assets on a re-run
         env:
@@ -287,7 +287,7 @@ jobs:
 
   tap:
     name: point the Homebrew formula at this release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/agent-sync-v')
     needs: [release]
     runs-on: ubuntu-latest
     permissions:
@@ -307,13 +307,16 @@ jobs:
       - name: commit, unless nothing moved
         run: |
           set -euo pipefail
-          if git diff --quiet -- Formula/agentstow.rb; then
+          git add Formula/agent-sync.rb
+          # --cached: on the first agent-sync release the formula is a new
+          # file, and a worktree diff does not see an untracked path at all —
+          # this would report "nothing moved" and never commit it.
+          if git diff --cached --quiet -- Formula/agent-sync.rb; then
             echo "the formula already points at $GITHUB_REF_NAME"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Formula/agentstow.rb
           git commit -m "Homebrew formula: $GITHUB_REF_NAME"
           # A human may have pushed to main while the release was building.
           git pull --rebase origin main
@@ -321,7 +324,7 @@ jobs:
 
   publish-crate:
     name: publish to crates.io
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/agent-sync-v')
     needs: [package, crate, guard]
     runs-on: ubuntu-latest
     permissions:
@@ -341,8 +344,8 @@ jobs:
         run: |
           set -euo pipefail
           version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
-          if curl -sf https://index.crates.io/ag/en/agentstow | grep -q "\"vers\":\"$version\""; then
-            echo "agentstow $version is already on crates.io; skipping"
+          if curl -sf https://index.crates.io/ag/en/agent-sync-sh | grep -q "\"vers\":\"$version\""; then
+            echo "agent-sync-sh $version is already on crates.io; skipping"
           else
             cargo publish --locked
           fi
@@ -351,7 +354,7 @@ jobs:
 
   publish-npm:
     name: publish to npm
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/agent-sync-v')
     needs: [package, crate, guard]
     runs-on: ubuntu-latest
     permissions:
@@ -381,8 +384,8 @@ jobs:
         # assuming it.
         run: |
           set -euo pipefail
-          chmod +x dist/*/bin/agentstow* dist/agentstow/bin/agentstow.js
-          dist/linux-x64/bin/agentstow --version
+          chmod +x dist/*/bin/agent-sync* dist/agent-sync-sh/bin/agent-sync.js
+          dist/linux-x64/bin/agent-sync --version
       - name: platform packages first, then the launcher
         # The launcher declares the platform packages as optional
         # dependencies; publishing it first leaves a window where installing
@@ -404,15 +407,15 @@ jobs:
           for target in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-arm64 win32-x64; do
             publish "dist/$target"
           done
-          publish dist/agentstow
+          publish dist/agent-sync-sh
 
   publish-pypi:
     name: publish to PyPI
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/agent-sync-v')
     needs: [package, crate, guard, wheels]
     runs-on: ubuntu-latest
     # PyPI binds its trust entry to this environment name, and the environment
-    # itself only accepts v* tags — so a workflow run on a branch cannot mint a
+    # itself only accepts agent-sync-v* tags — so a run on a branch cannot mint a
     # PyPI credential even though it lives in the same file. crates.io and npm
     # leave the environment blank; PyPI is the one registry that recommends it,
     # and it is the newest trust entry, so it starts tight.

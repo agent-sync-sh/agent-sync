@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 
-// Launcher for the prebuilt agentstow binary.
+// Launcher for the prebuilt agent-sync binary.
 //
 // The real executable ships in one platform package per target, declared as
 // optional dependencies. npm installs only the one matching this machine
@@ -10,12 +10,12 @@
 
 const { spawnSync } = require("node:child_process");
 
-const PACKAGE = `@agentstow/${process.platform}-${process.arch}`;
+const PACKAGE = `@agent-sync-sh/${process.platform}-${process.arch}`;
 const EXE = process.platform === "win32" ? ".exe" : "";
 
 function binaryPath() {
   try {
-    return require.resolve(`${PACKAGE}/bin/agentstow${EXE}`);
+    return require.resolve(`${PACKAGE}/bin/agent-sync${EXE}`);
   } catch {
     return null;
   }
@@ -25,10 +25,10 @@ const binary = binaryPath();
 
 if (!binary) {
   process.stderr.write(
-    `agentstow: no prebuilt binary for ${process.platform}-${process.arch}.\n` +
+    `agent-sync: no prebuilt binary for ${process.platform}-${process.arch}.\n` +
       `Expected the optional dependency ${PACKAGE}.\n` +
-      `agentstow is now agent-sync. If your platform is unsupported, build from\n` +
-      `source: cargo install agent-sync-sh  (details: https://agent-sync.sh)\n` +
+      `If your platform is unsupported, build from source:\n` +
+      `  cargo install agent-sync-sh  (details: https://agent-sync.sh)\n` +
       `If the install skipped optional dependencies, reinstall without --no-optional.\n`
   );
   process.exit(1);
@@ -46,7 +46,7 @@ if (result.error && result.error.code === "EACCES") {
 }
 
 if (result.error) {
-  process.stderr.write(`agentstow: cannot run ${binary}: ${result.error.message}\n`);
+  process.stderr.write(`agent-sync: cannot run ${binary}: ${result.error.message}\n`);
   process.exit(1);
 }
 

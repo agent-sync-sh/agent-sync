@@ -246,7 +246,7 @@ fn human(
         r.line("Everything is in sync.");
     } else {
         r.line(format!(
-            "{actionable} items need attention — run `agentstow sync`."
+            "{actionable} items need attention — run `agent-sync sync`."
         ));
     }
 }

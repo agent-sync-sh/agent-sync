@@ -6,9 +6,9 @@
 //! the file is the user's and we may only add one additive, idempotent line;
 //! and a **rules-dir link** where the agent globs a directory.
 //!
-//! A Foreign file already occupying the destination is a conflict: agentstow
+//! A Foreign file already occupying the destination is a conflict: agent-sync
 //! reports it with a remediation hint and writes nothing. Resolving it is a
-//! decision about someone else's content, which is not agentstow's to make.
+//! decision about someone else's content, which is not agent-sync's to make.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -19,7 +19,7 @@ use crate::link;
 use crate::registry::Instructions;
 use crate::target;
 
-/// What agentstow found at one agent's instructions destination.
+/// What agent-sync found at one agent's instructions destination.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum State {
     /// Our symlink is in place and canonical.

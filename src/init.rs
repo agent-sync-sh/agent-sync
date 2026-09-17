@@ -8,7 +8,7 @@
 //! use" and start reporting every tool's own hooks.
 //!
 //! The report that follows is the on-ramp. On a machine that has been used, the
-//! interesting question is not "what does agentstow do" but "what of mine could
+//! interesting question is not "what does agent-sync do" but "what of mine could
 //! it take over", so the report answers that, in the project's vocabulary, with
 //! the command that would do it.
 
@@ -63,9 +63,9 @@ pub fn run(env: &Env, config: &Config, r: &mut Reporter) -> i32 {
 
     r.blank();
     if offered {
-        r.line("Adopt what you want to share, then run `agentstow sync`.");
+        r.line("Adopt what you want to share, then run `agent-sync sync`.");
     } else {
-        r.line("Put a skill in skills/, instructions in AGENTS.md, then run `agentstow sync`.");
+        r.line("Put a skill in skills/, instructions in AGENTS.md, then run `agent-sync sync`.");
     }
 
     EXIT_CLEAN
@@ -73,7 +73,7 @@ pub fn run(env: &Env, config: &Config, r: &mut Reporter) -> i32 {
 
 fn report_agents(targets: &[Target], r: &mut Reporter) {
     if targets.is_empty() {
-        r.line("No agents found — agentstow syncs to agents that are already installed.");
+        r.line("No agents found — agent-sync syncs to agents that are already installed.");
         return;
     }
     let names: Vec<&str> = targets.iter().map(|t| t.name.as_str()).collect();
@@ -126,7 +126,7 @@ fn report_candidates(env: &Env, commons: &Commons, targets: &[Target], r: &mut R
         if found.len() > 8 {
             r.line(format!("  … and {} more", found.len() - 8));
         }
-        r.line("  take one with `agentstow adopt <path>`");
+        r.line("  take one with `agent-sync adopt <path>`");
     }
 
     // MCP servers are named rather than pathed, and adopt takes them in bulk.
@@ -166,7 +166,7 @@ fn report_candidates(env: &Env, commons: &Commons, targets: &[Target], r: &mut R
             names.len(),
             names.join(", ")
         ));
-        r.line("  take them all with `agentstow mcp adopt --all`");
+        r.line("  take them all with `agent-sync mcp adopt --all`");
     }
 
     if !offered {
@@ -176,7 +176,7 @@ fn report_candidates(env: &Env, commons: &Commons, targets: &[Target], r: &mut R
     offered
 }
 
-/// Instructions files another tool already owns, which agentstow will not touch.
+/// Instructions files another tool already owns, which agent-sync will not touch.
 fn report_conflicts(env: &Env, config: &Config, commons: &Commons, r: &mut Reporter) {
     let items = instructions::survey(env, config, &commons.root().join(commons::INSTRUCTIONS));
     let conflicts: Vec<&instructions::Item> = items

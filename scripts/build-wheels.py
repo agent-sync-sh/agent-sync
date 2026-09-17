@@ -4,7 +4,7 @@
     scripts/build-wheels.py <out-dir> [target ...]
 
 Each target is the same "<platform>-<arch>" name build-npm.sh uses, and the
-binary for a target is read from target/<rust-triple>/release/agentstow, so a
+binary for a target is read from target/<rust-triple>/release/agent-sync, so a
 release packs the *identical* binary that the tarball and the npm package ship.
 Nothing is compiled here.
 
@@ -15,7 +15,8 @@ cheaper to write that layout than to build everything twice.
 
 The binary goes in <name>-<version>.data/scripts/, which pip installs into the
 environment's bin/ (Scripts/ on Windows) and marks executable — that is what
-makes `pip install agentstow` and `uvx agentstow` put a working `agentstow` on
+makes `pip install agent-sync-sh` and `uvx --from agent-sync-sh agent-sync` put
+a working `agent-sync` on
 PATH without any Python entry-point shim in between.
 """
 
@@ -44,7 +45,10 @@ TARGETS = {
     "win32-x64": ("x86_64-pc-windows-msvc", "win_amd64"),
 }
 
-SUMMARY = "DEPRECATED — agentstow is now agent-sync: install agent-sync-sh instead"
+SUMMARY = (
+    "Canonical configs, fanned out to all your AI coding agents from the "
+    "Commons, the canonical ~/.agents directory"
+)
 
 CLASSIFIERS = [
     "Development Status :: 5 - Production/Stable",
@@ -94,7 +98,7 @@ def binary_for(target):
     """The built binary for a target, or None when it was not built."""
     triple, _ = TARGETS[target]
     exe = ".exe" if target.startswith("win32-") else ""
-    path = os.path.join(ROOT, "target", triple, "release", "agentstow" + exe)
+    path = os.path.join(ROOT, "target", triple, "release", "agent-sync" + exe)
     if os.path.exists(path):
         return path
     # A plain `cargo build --release` writes the host binary untripled. Accept
@@ -104,7 +108,7 @@ def binary_for(target):
     # cannot be replaced, only yanked.
     if target != host_target():
         return None
-    host = os.path.join(ROOT, "target", "release", "agentstow" + exe)
+    host = os.path.join(ROOT, "target", "release", "agent-sync" + exe)
     return host if os.path.exists(host) else None
 
 
@@ -113,13 +117,13 @@ def metadata(version):
         readme = fh.read()
     lines = [
         "Metadata-Version: 2.1",
-        "Name: agentstow",
+        "Name: agent-sync-sh",
         f"Version: {version}",
         f"Summary: {SUMMARY}",
         "License: MIT",
         "Requires-Python: >=3.8",
-        "Project-URL: Homepage, https://github.com/agentstow/agentstow",
-        "Project-URL: Repository, https://github.com/agentstow/agentstow",
+        "Project-URL: Homepage, https://agent-sync.sh",
+        "Project-URL: Repository, https://github.com/agent-sync-sh/agent-sync",
         "Description-Content-Type: text/markdown",
     ]
     lines += [f"Classifier: {c}" for c in CLASSIFIERS]
@@ -137,8 +141,8 @@ def build(target, version, outdir):
         return None
     _, platform_tag = TARGETS[target]
     exe = ".exe" if target.startswith("win32-") else ""
-    distinfo = f"agentstow-{version}.dist-info"
-    scripts = f"agentstow-{version}.data/scripts"
+    distinfo = f"agent_sync_sh-{version}.dist-info"
+    scripts = f"agent_sync_sh-{version}.data/scripts"
 
     # A stale target/release/ is the one way this script can label a wheel with
     # a version its binary does not carry, and the manual-upload path in the
@@ -152,7 +156,7 @@ def build(target, version, outdir):
             ).stdout.strip()
         except (OSError, subprocess.SubprocessError):
             reported = ""
-        if reported and reported != f"agentstow {version}":
+        if reported and reported != f"agent-sync {version}":
             sys.exit(
                 f"{binary} reports {reported!r}, but Cargo.toml says {version} — "
                 "rebuild with `cargo build --release` before packaging"
@@ -165,13 +169,13 @@ def build(target, version, outdir):
     # platform tag in the filename expands to.
     tags = "\n".join(f"Tag: py3-none-{t}" for t in platform_tag.split("."))
     files = [
-        (f"{scripts}/agentstow{exe}", binary_bytes, True),
+        (f"{scripts}/agent-sync{exe}", binary_bytes, True),
         (f"{distinfo}/METADATA", metadata(version).encode("utf-8"), False),
         (
             f"{distinfo}/WHEEL",
             (
                 "Wheel-Version: 1.0\n"
-                "Generator: agentstow build-wheels.py\n"
+                "Generator: agent-sync build-wheels.py\n"
                 "Root-Is-Purelib: false\n" + tags + "\n"
             ).encode("utf-8"),
             False,
@@ -182,7 +186,7 @@ def build(target, version, outdir):
     record.append(f"{distinfo}/RECORD,,")
     files.append((f"{distinfo}/RECORD", ("\n".join(record) + "\n").encode("utf-8"), False))
 
-    name = f"agentstow-{version}-py3-none-{platform_tag}.whl"
+    name = f"agent_sync_sh-{version}-py3-none-{platform_tag}.whl"
     write_wheel(os.path.join(outdir, name), files)
     return name
 
@@ -197,14 +201,14 @@ def write_wheel(path, files):
             # S_IFREG is not decoration. pip decides whether to install a file
             # executable with `stat.S_ISREG(mode) and mode & 0o111`, so a bare
             # 0o755 here fails S_ISREG and pip writes a non-executable binary
-            # to the venv's bin/ — an `agentstow` on PATH that cannot run.
+            # to the venv's bin/ — an `agent-sync` on PATH that cannot run.
             mode = stat.S_IFREG | (0o755 if executable else 0o644)
             info.external_attr = mode << 16
             zf.writestr(info, data)
 
 
 FALLBACK_MODULE = '''\
-"""Stand-in for platforms with no prebuilt agentstow binary.
+"""Stand-in for platforms with no prebuilt agent-sync binary.
 
 Ships only in the py3-none-any wheel. pip prefers a platform wheel whenever
 one matches, so this is reached only where none does.
@@ -221,11 +225,10 @@ SUPPORTED = (
 
 def main():
     sys.stderr.write(
-        f"agentstow: no prebuilt binary for {sys.platform}-{platform.machine()}.\\n"
+        f"agent-sync: no prebuilt binary for {sys.platform}-{platform.machine()}.\\n"
         "This is the fallback wheel — pip installs it only when no platform "
         "wheel matches your machine.\\n"
         f"Prebuilt wheels exist for {SUPPORTED}.\\n"
-        "agentstow is now agent-sync.\\n"
         "To build from source instead: cargo install agent-sync-sh\\n"
         "Details: https://agent-sync.sh\\n"
     )
@@ -240,7 +243,7 @@ if __name__ == "__main__":
 def build_fallback(version, outdir):
     """The py3-none-any wheel: no binary, just a command that explains itself.
 
-    Without it, `pip install agentstow` on an unsupported platform fails with
+    Without it, `pip install agent-sync-sh` on an unsupported platform fails with
     pip's generic "no matching distribution found", which names neither the
     platform nor a way forward. The npm launcher already behaves the way this
     does — install succeeds, running it says what it looked for and points at
@@ -248,15 +251,15 @@ def build_fallback(version, outdir):
     A platform tag always outranks `any` in pip's preference order, so this
     can never shadow a real wheel.
     """
-    distinfo = f"agentstow-{version}.dist-info"
+    distinfo = f"agent_sync_sh-{version}.dist-info"
     files = [
-        ("agentstow_unsupported.py", FALLBACK_MODULE.encode("utf-8"), False),
+        ("agent_sync_unsupported.py", FALLBACK_MODULE.encode("utf-8"), False),
         (f"{distinfo}/METADATA", metadata(version).encode("utf-8"), False),
         (
             f"{distinfo}/WHEEL",
             (
                 "Wheel-Version: 1.0\n"
-                "Generator: agentstow build-wheels.py\n"
+                "Generator: agent-sync build-wheels.py\n"
                 "Root-Is-Purelib: true\n"
                 "Tag: py3-none-any\n"
             ).encode("utf-8"),
@@ -264,7 +267,7 @@ def build_fallback(version, outdir):
         ),
         (
             f"{distinfo}/entry_points.txt",
-            b"[console_scripts]\nagentstow = agentstow_unsupported:main\n",
+            b"[console_scripts]\nagent-sync = agent_sync_unsupported:main\n",
             False,
         ),
     ]
@@ -272,7 +275,7 @@ def build_fallback(version, outdir):
     record.append(f"{distinfo}/RECORD,,")
     files.append((f"{distinfo}/RECORD", ("\n".join(record) + "\n").encode("utf-8"), False))
 
-    name = f"agentstow-{version}-py3-none-any.whl"
+    name = f"agent_sync_sh-{version}-py3-none-any.whl"
     write_wheel(os.path.join(outdir, name), files)
     return name
 

@@ -1,11 +1,11 @@
-//! `$XDG_CONFIG_HOME/agentstow/agentstow.toml` — the only place agentstow's own settings live.
+//! `$XDG_CONFIG_HOME/agent-sync/agent-sync.toml` — the only place agent-sync's own settings live.
 
 mod common;
 
 use common::Fixture;
 
 fn config(f: &Fixture, body: &str) {
-    f.file(".config/agentstow/agentstow.toml", body);
+    f.file(".config/agent-sync/agent-sync.toml", body);
 }
 
 #[test]
@@ -112,7 +112,7 @@ fn malformed_toml_is_a_clear_error() {
 
     f.run(&["sync"])
         .assert_code(1)
-        .assert_stderr_has("agentstow.toml");
+        .assert_stderr_has("agent-sync.toml");
 }
 
 #[test]
@@ -143,7 +143,7 @@ fn configuration_never_lands_in_the_commons() {
     f.run(&["sync"]).assert_clean();
 
     assert!(
-        !f.commons().join("agentstow.toml").exists(),
+        !f.commons().join("agent-sync.toml").exists(),
         "the Commons holds ecosystem content only"
     );
 }
@@ -156,6 +156,6 @@ fn a_disabled_target_is_not_counted_as_missing() {
 
     let out = f.run(&["doctor"]);
 
-    let total = agentstow::registry::AGENTS.len() - 1;
+    let total = agent_sync::registry::AGENTS.len() - 1;
     out.assert_stdout_has(&format!("1 of {total}"));
 }

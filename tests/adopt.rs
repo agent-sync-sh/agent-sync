@@ -595,7 +595,7 @@ fn a_declared_custom_surface_absorbs_even_inside_a_repo() {
     // Declaring a custom target is an explicit statement that the dir has
     // fan-out semantics — the surface wins over the repo walk-up (ADR-0006).
     f.file(
-        ".config/agentstow/agentstow.toml",
+        ".config/agent-sync/agent-sync.toml",
         "[custom.myagent]\nroot = \"repo/.myagent\"\nskills = \"repo/.myagent/skills\"\n",
     );
     f.file("repo/.git/HEAD", "ref: refs/heads/main\n");
@@ -769,7 +769,7 @@ fn dry_run_refuses_in_the_same_words_as_a_real_run() {
 fn dry_run_never_contends_for_the_lock() {
     let f = machine();
     f.file(".claude/skills/local/SKILL.md", "mine\n");
-    let _held = common::hold_lock(f.path(".local/state/agentstow/lock"));
+    let _held = common::hold_lock(f.path(".local/state/agent-sync/lock"));
 
     f.run_with_vars(
         &[
@@ -778,9 +778,9 @@ fn dry_run_never_contends_for_the_lock() {
             "--dry-run",
         ],
         &[
-            ("AGENTSTOW_TARGET_ROOT", f.home().display().to_string()),
-            ("AGENTSTOW_HOME", f.commons().display().to_string()),
-            ("AGENTSTOW_LOCK_TIMEOUT_MS", "150".to_string()),
+            ("AGENT_SYNC_TARGET_ROOT", f.home().display().to_string()),
+            ("AGENT_SYNC_HOME", f.commons().display().to_string()),
+            ("AGENT_SYNC_LOCK_TIMEOUT_MS", "150".to_string()),
         ],
     )
     .assert_clean();

@@ -5,19 +5,19 @@ use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "agentstow",
+    name = "agent-sync",
     version,
     about = "One canonical .agents/ folder, fanned out to all your AI coding agents",
     long_about = "One canonical .agents/ folder, fanned out to all your AI coding agents.\n\n\
                   Sync skills, instructions, MCP servers, commands, agents and hooks \
                   from the Commons — the canonical ~/.agents directory — to every installed agent.",
-    after_help = "agentstow has been renamed to agent-sync.\n\
-  New package: agent-sync-sh  (cargo · npm · pip · brew)\n\
-  Home: https://agent-sync.sh"
+    after_help = "Home: https://agent-sync.sh"
 )]
 pub struct Cli {
+    /// Absent means `sync`: it is the command users run every day, and typing
+    /// `agent-sync sync` to get it reads as a stutter.
     #[command(subcommand)]
-    pub command: Command,
+    pub command: Option<Command>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -46,7 +46,7 @@ pub enum Command {
         #[arg(long)]
         dry_run: bool,
     },
-    /// Remove everything agentstow put into one target.
+    /// Remove everything agent-sync put into one target.
     Revert {
         /// The agent to strip, by the name `status` and `doctor` use.
         agent: String,

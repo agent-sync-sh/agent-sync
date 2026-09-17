@@ -14,7 +14,7 @@
 //!   doctor's leftover-directory hint. The count is pinned at exactly one, so
 //!   both a new literal and a stale allowlist fail.
 //! * The avoid-**phrases** with no legitimate other sense: "canonical source",
-//!   "central repo", "agentstow's directory", "zero-config agent",
+//!   "central repo", "agent-sync's directory", "zero-config agent",
 //!   "linked skill", "repo-backed".
 //!
 //! What this test deliberately does NOT enforce, and why: several avoid-words
@@ -66,7 +66,7 @@ const RETIRED_FAMILY_PERMITTED: usize = 1;
 const BANNED_PHRASES: &[&str] = &[
     "canonical source",
     "central repo",
-    "agentstow's directory",
+    "agent-sync's directory",
     "zero-config agent",
     "linked skill",
     "repo-backed",
@@ -167,7 +167,7 @@ fn glossary_still_defines_the_enforced_terms(manifest: &Path) {
         "store",
         "canonical source",
         "central repo",
-        "agentstow's directory",
+        "agent-sync's directory",
         "zero-config agent",
         "linked",
         "repo-backed",

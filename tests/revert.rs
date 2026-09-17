@@ -1,4 +1,4 @@
-//! `revert <agent>` — deliberate offboarding. Everything agentstow put into
+//! `revert <agent>` — deliberate offboarding. Everything agent-sync put into
 //! one target goes; Foreign content and Variants stay byte-for-byte; a target
 //! that is still enabled refuses with the exact config line to add.
 
@@ -15,7 +15,7 @@ fn machine() -> Fixture {
 }
 
 fn config(f: &Fixture, body: &str) {
-    f.file(".config/agentstow/agentstow.toml", body);
+    f.file(".config/agent-sync/agent-sync.toml", body);
 }
 
 /// Every hook object anywhere under one event, flattened.
@@ -47,7 +47,7 @@ fn revert_on_an_enabled_agent_refuses_with_the_exact_disable_line() {
     out.assert_code(1).assert_stderr_has(&format!(
         "claude is still enabled — set targets.claude = false in {} first, \
          so sync will not redo what revert undoes",
-        f.path(".config/agentstow/agentstow.toml").display()
+        f.path(".config/agent-sync/agent-sync.toml").display()
     ));
     assert_eq!(before, f.tree(), "a refusal must change nothing");
 }
@@ -58,7 +58,7 @@ fn an_unknown_agent_refuses_by_name() {
 
     f.run(&["revert", "nosuchagent"])
         .assert_code(1)
-        .assert_stderr_has("`nosuchagent` is not an agent agentstow knows about");
+        .assert_stderr_has("`nosuchagent` is not an agent agent-sync knows about");
 }
 
 #[test]
@@ -76,14 +76,14 @@ fn a_refusal_never_contends_for_the_lock() {
     let f = machine();
     f.commons_skill("research");
     f.run(&["sync"]).assert_clean();
-    let _held = common::hold_lock(f.path(".local/state/agentstow/lock"));
+    let _held = common::hold_lock(f.path(".local/state/agent-sync/lock"));
 
     f.run_with_vars(
         &["revert", "claude"],
         &[
-            ("AGENTSTOW_TARGET_ROOT", f.home().display().to_string()),
-            ("AGENTSTOW_HOME", f.commons().display().to_string()),
-            ("AGENTSTOW_LOCK_TIMEOUT_MS", "150".to_string()),
+            ("AGENT_SYNC_TARGET_ROOT", f.home().display().to_string()),
+            ("AGENT_SYNC_HOME", f.commons().display().to_string()),
+            ("AGENT_SYNC_LOCK_TIMEOUT_MS", "150".to_string()),
         ],
     )
     .assert_code(1)
@@ -94,18 +94,18 @@ fn a_refusal_never_contends_for_the_lock() {
 fn the_teardown_itself_runs_under_the_lock() {
     let f = machine();
     config(&f, "[targets]\nclaude = false\n");
-    let _held = common::hold_lock(f.path(".local/state/agentstow/lock"));
+    let _held = common::hold_lock(f.path(".local/state/agent-sync/lock"));
 
     f.run_with_vars(
         &["revert", "claude"],
         &[
-            ("AGENTSTOW_TARGET_ROOT", f.home().display().to_string()),
-            ("AGENTSTOW_HOME", f.commons().display().to_string()),
-            ("AGENTSTOW_LOCK_TIMEOUT_MS", "150".to_string()),
+            ("AGENT_SYNC_TARGET_ROOT", f.home().display().to_string()),
+            ("AGENT_SYNC_HOME", f.commons().display().to_string()),
+            ("AGENT_SYNC_LOCK_TIMEOUT_MS", "150".to_string()),
         ],
     )
     .assert_code(1)
-    .assert_stderr_has("another agentstow process is running");
+    .assert_stderr_has("another agent-sync process is running");
 }
 
 // ------------------------------------------------------------------ teardown
@@ -188,7 +188,7 @@ fn revert_strips_every_family_and_touches_nothing_else() {
 #[test]
 fn revert_strips_our_leftovers_from_a_flipped_agents_legacy_dir() {
     // Codex takes no skills fan-out any more, but links an earlier registry
-    // put in .codex/skills are still agentstow's to remove on offboarding.
+    // put in .codex/skills are still agent-sync's to remove on offboarding.
     let f = machine();
     f.commons_skill("research");
     f.symlink(".codex/skills/research", "../../.agents/skills/research");
@@ -304,6 +304,6 @@ fn revert_is_idempotent() {
 
     f.run(&["revert", "claude"])
         .assert_clean()
-        .assert_stdout_has("nothing of agentstow's in claude — nothing to revert");
+        .assert_stdout_has("nothing of agent-sync's in claude — nothing to revert");
     assert_eq!(after, f.tree(), "a second revert must change nothing");
 }

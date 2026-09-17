@@ -1,13 +1,13 @@
-//! Tool configuration: `$XDG_CONFIG_HOME/agentstow/agentstow.toml` (default
-//! `~/.config/agentstow/`).
+//! Tool configuration: `$XDG_CONFIG_HOME/agent-sync/agent-sync.toml` (default
+//! `~/.config/agent-sync/`).
 //!
 //! Deliberately tiny, and deliberately *not* in the Commons — the Commons holds
 //! ecosystem content that other tools may one day read, so nothing
-//! agentstow-specific squats there. An absent file means pure defaults.
+//! agent-sync-specific squats there. An absent file means pure defaults.
 //!
 //! ```toml
 //! [targets]
-//! cursor = false            # a detected agent agentstow should leave alone
+//! cursor = false            # a detected agent agent-sync should leave alone
 //!
 //! [custom.myagent]          # an agent the built-in registry does not know
 //! root = ".myagent"
@@ -23,7 +23,9 @@ use crate::family::Family;
 use serde_json::{Map, Value};
 
 /// Where the config file lives inside the config directory.
-pub const FILE: &str = "agentstow.toml";
+pub const FILE: &str = "agent-sync.toml";
+/// What the file was called before the rename — named by doctor, never read.
+pub const LEGACY_FILE: &str = "agentstow.toml";
 
 /// A target defined entirely by the user's config.
 #[derive(Debug, Clone)]

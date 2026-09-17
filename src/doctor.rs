@@ -29,26 +29,11 @@ pub fn run(env: &Env, config: &Config, r: &mut Reporter) -> i32 {
     r.line(format!("State   {}", env.state_dir().display()));
     r.blank();
 
-    if env.legacy_config_dir().is_dir() {
-        // v1 kept both the config and the lock here, so the usual leftover is
-        // agentstow's own lock and no config at all. Telling that user to move
-        // a file they do not have reads as a broken instruction, and sends
-        // them looking for something that was never there.
-        if env.legacy_config_dir().join(config::FILE).is_file() {
-            r.warn(format!(
-                "{} is no longer read — move {} to {} and delete the directory",
-                env.legacy_config_dir().display(),
-                config::FILE,
-                env.config_dir().display()
-            ));
-        } else {
-            r.warn(format!(
-                "{} is no longer read and holds no {} — the directory can be deleted",
-                env.legacy_config_dir().display(),
-                config::FILE
-            ));
-        }
-    }
+    // Two leftovers, same shape: v1's ~/.agentstow and agentstow's XDG
+    // directory. Both held agentstow.toml, both are named rather than migrated,
+    // and neither is ever read.
+    report_leftover(env.legacy_config_dir(), env, r);
+    report_leftover(env.legacy_tool_config_dir(), env, r);
 
     if commons.exists() {
         report_commons(&commons, r);
@@ -70,6 +55,34 @@ pub fn run(env: &Env, config: &Config, r: &mut Reporter) -> i32 {
     report_agents(env, config, r);
 
     r.verdict()
+}
+
+/// Name one directory the tool no longer reads, and say what to do with it.
+///
+/// Both leftovers kept their config as `agentstow.toml`, so that is the file to
+/// look for. v1 kept its lock in the same directory, so a leftover holding no
+/// config at all is the ordinary case — telling that user to move a file they
+/// do not have reads as a broken instruction and sends them looking for
+/// something that was never there.
+fn report_leftover(dir: &Path, env: &Env, r: &mut Reporter) {
+    if !dir.is_dir() {
+        return;
+    }
+    if dir.join(config::LEGACY_FILE).is_file() {
+        r.warn(format!(
+            "{} is no longer read — move {} to {} as {} and delete the directory",
+            dir.display(),
+            config::LEGACY_FILE,
+            env.config_dir().display(),
+            config::FILE
+        ));
+    } else {
+        r.warn(format!(
+            "{} is no longer read and holds no {} — the directory can be deleted",
+            dir.display(),
+            config::LEGACY_FILE
+        ));
+    }
 }
 
 fn report_commons(commons: &Commons, r: &mut Reporter) {
@@ -224,14 +237,14 @@ fn sourced_entries(commons: &Commons) -> Vec<Sourced> {
 /// real consumer exists to fan out to.
 const PROTOCOL_SURFACES: &[&str] = &["tasks", "memories", "models.json", "system-prompt.md"];
 
-/// Names at the Commons root that are not agentstow's own families, split into
+/// Names at the Commons root that are not agent-sync's own families, split into
 /// Protocol surfaces (attributed) and other co-tenants (anonymous).
 ///
-/// The Commons is a shared commons, not agentstow's private directory (ADR-0004):
+/// The Commons is a shared commons, not agent-sync's private directory (ADR-0004):
 /// opencode, oh-my-pi and hermes read `~/.agents/` themselves, and the `skills`
 /// CLI keeps its lock file there. An unrecognised name is a neighbour, not a
 /// fault — so these are named and never counted, never called an issue, and
-/// never touched. agentstow can read filenames but not authorship, so it must
+/// never touched. agent-sync can read filenames but not authorship, so it must
 /// not claim how many *tools* are present, only which entries are not its own.
 fn neighbours(commons: &Commons) -> (Vec<String>, Vec<String>) {
     let ours: Vec<&str> = Family::ALL
@@ -256,12 +269,12 @@ fn neighbours(commons: &Commons) -> (Vec<String>, Vec<String>) {
 /// Warn when a relocated Commons is invisible to the agents that read the
 /// canonical path themselves.
 ///
-/// `AGENTSTOW_HOME` moves agentstow's Commons, but it cannot move the path a
+/// `AGENT_SYNC_HOME` moves agent-sync's Commons, but it cannot move the path a
 /// Native agent hardcodes. Those agents keep reading `~/.agents/` and silently
 /// diverge from every agent that gets fan-out — so name them.
 fn report_commons_override(env: &Env, config: &Config, r: &mut Reporter) {
     if env
-        .var("AGENTSTOW_HOME")
+        .var("AGENT_SYNC_HOME")
         .filter(|v| !v.is_empty())
         .is_none()
     {
@@ -284,7 +297,7 @@ fn report_commons_override(env: &Env, config: &Config, r: &mut Reporter) {
     }
 
     r.warn(format!(
-        "AGENTSTOW_HOME points the Commons at {}, but {} read {} directly \
+        "AGENT_SYNC_HOME points the Commons at {}, but {} read {} directly \
          and will not see it",
         env.commons().display(),
         native.join(" and "),
@@ -355,7 +368,7 @@ fn is_writable(path: &Path) -> bool {
 /// doctor being read-only — the probe never survives the call.
 #[cfg(windows)]
 fn is_writable(path: &Path) -> bool {
-    let probe = path.join(format!(".agentstow-probe-{}", std::process::id()));
+    let probe = path.join(format!(".agent-sync-probe-{}", std::process::id()));
     match std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)

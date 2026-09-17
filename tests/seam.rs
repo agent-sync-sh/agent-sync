@@ -11,10 +11,10 @@ fn target_root_redirects_home_without_touching_the_real_one() {
     let f = Fixture::new();
     f.agent(".claude");
 
-    // Only AGENTSTOW_TARGET_ROOT is set: the Commons defaults to <home>/.agents.
+    // Only AGENT_SYNC_TARGET_ROOT is set: the Commons defaults to <home>/.agents.
     let out = f.run_with_vars(
         &["doctor"],
-        &[("AGENTSTOW_TARGET_ROOT", f.home().display().to_string())],
+        &[("AGENT_SYNC_TARGET_ROOT", f.home().display().to_string())],
     );
 
     out.assert_clean()
@@ -33,8 +33,8 @@ fn commons_location_is_independent_of_home() {
     let out = f.run_with_vars(
         &["doctor"],
         &[
-            ("AGENTSTOW_TARGET_ROOT", f.home().display().to_string()),
-            ("AGENTSTOW_HOME", elsewhere.display().to_string()),
+            ("AGENT_SYNC_TARGET_ROOT", f.home().display().to_string()),
+            ("AGENT_SYNC_HOME", elsewhere.display().to_string()),
         ],
     );
 
@@ -64,7 +64,7 @@ fn target_root_wins_over_home() {
         &["doctor"],
         &[
             ("HOME", decoy.display().to_string()),
-            ("AGENTSTOW_TARGET_ROOT", f.home().display().to_string()),
+            ("AGENT_SYNC_TARGET_ROOT", f.home().display().to_string()),
         ],
     );
 
@@ -89,10 +89,10 @@ fn config_directory_is_never_inside_the_commons() {
     let out = f.run(&["doctor"]);
 
     out.assert_clean()
-        .assert_stdout_has(&f.home().join(".config/agentstow").display().to_string())
+        .assert_stdout_has(&f.home().join(".config/agent-sync").display().to_string())
         .assert_stdout_has(
             &f.home()
-                .join(".local/state/agentstow")
+                .join(".local/state/agent-sync")
                 .display()
                 .to_string(),
         );
@@ -110,7 +110,7 @@ fn an_absolute_xdg_config_home_wins_over_the_derived_default() {
     let out = f.run_with_env(&["doctor"], &[("XDG_CONFIG_HOME", &elsewhere)]);
 
     out.assert_clean()
-        .assert_stdout_has(&format!("{elsewhere}/agentstow"));
+        .assert_stdout_has(&format!("{elsewhere}/agent-sync"));
 }
 
 #[test]
@@ -120,7 +120,7 @@ fn a_relative_xdg_config_home_is_ignored() {
     let out = f.run_with_env(&["doctor"], &[("XDG_CONFIG_HOME", "relative/path")]);
 
     out.assert_clean()
-        .assert_stdout_has(&f.home().join(".config/agentstow").display().to_string());
+        .assert_stdout_has(&f.home().join(".config/agent-sync").display().to_string());
 }
 
 #[test]
@@ -130,7 +130,7 @@ fn the_lock_lives_in_the_state_dir_and_the_legacy_dir_stays_absent() {
     f.run(&["sync"]).assert_clean();
 
     assert!(
-        f.present(".local/state/agentstow/lock"),
+        f.present(".local/state/agent-sync/lock"),
         "the lock must land in the XDG state dir"
     );
     assert!(
@@ -162,9 +162,27 @@ fn doctor_says_to_move_a_legacy_config_that_is_really_there() {
 
     let out = f.run(&["doctor"]);
 
+    // The leftover is named by its old name, and the destination by the new
+    // one: both halves have to be right or the instruction cannot be followed.
     out.assert_clean()
         .assert_stderr_has("move agentstow.toml")
-        .assert_stderr_has(".config/agentstow");
+        .assert_stderr_has(".config/agent-sync")
+        .assert_stderr_has("as agent-sync.toml");
+}
+
+#[test]
+fn doctor_names_the_xdg_directory_agentstow_left_behind() {
+    let f = Fixture::new();
+    f.file(".config/agentstow/agentstow.toml", "");
+
+    let out = f.run(&["doctor"]);
+
+    // The rename adds a third leftover layer beside v1's ~/.agentstow. It is
+    // never read, so an unnoticed one silently strands the user's settings.
+    out.assert_clean()
+        .assert_stderr_has(".config/agentstow")
+        .assert_stderr_has("move agentstow.toml")
+        .assert_stderr_has("as agent-sync.toml");
 }
 
 #[test]
@@ -175,7 +193,7 @@ fn help_is_a_result_not_a_diagnostic() {
 
     out.assert_clean()
         .assert_stderr_empty()
-        .assert_stdout_has("agentstow");
+        .assert_stdout_has("agent-sync");
 }
 
 #[test]

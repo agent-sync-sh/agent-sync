@@ -4,7 +4,7 @@ mod common;
 
 use common::Fixture;
 
-const CANARY: &str = "AGENTSTOW-CANARY-d9a2c4";
+const CANARY: &str = "AGENT-SYNC-CANARY-d9a2c4";
 
 /// Every MCP-capable agent, plus the two that must never be written.
 fn machine() -> Fixture {

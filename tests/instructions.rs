@@ -135,7 +135,7 @@ fn agents_without_an_instructions_surface_get_nothing() {
 
     f.run(&["sync"]).assert_clean();
 
-    // Cursor's user-level rules live in app storage, out of agentstow's reach.
+    // Cursor's user-level rules live in app storage, out of agent-sync's reach.
     assert!(!f.present(".cursor/AGENTS.md"));
 }
 

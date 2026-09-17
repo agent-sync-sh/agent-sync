@@ -188,5 +188,5 @@ fn a_missing_commons_is_an_error_not_a_drift_report() {
 
     f.run(&["status"])
         .assert_code(1)
-        .assert_stderr_has("agentstow init");
+        .assert_stderr_has("agent-sync init");
 }

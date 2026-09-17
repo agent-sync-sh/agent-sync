@@ -558,12 +558,12 @@ fn family_from_parent(path: &Path, r: &mut Reporter) -> Option<Family> {
     family
 }
 
-/// One divergence refusal for every mechanic: agentstow never chooses which
+/// One divergence refusal for every mechanic: agent-sync never chooses which
 /// side of a Variant to discard.
 fn divergence_message(path: &Path, destination: &Path) -> String {
     format!(
         "{} differs from the Commons copy at {} — this is a Variant. \
-         Merge it by hand if you want it in the Commons; agentstow will not \
+         Merge it by hand if you want it in the Commons; agent-sync will not \
          choose which side to discard",
         path.display(),
         destination.display()
@@ -762,7 +762,7 @@ impl Placement {
     }
 }
 
-/// Match a path against every Target surface agentstow manages: the fan-out
+/// Match a path against every Target surface agent-sync manages: the fan-out
 /// directories, and the per-agent instructions destinations.
 fn locate(env: &Env, config: &Config, path: &Path) -> Option<Placement> {
     let parent = link::normalize(path.parent()?);

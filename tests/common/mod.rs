@@ -1,7 +1,7 @@
 //! The single testing seam.
 //!
-//! Every test builds a throwaway tree, points `AGENTSTOW_TARGET_ROOT` (home) and
-//! `AGENTSTOW_HOME` (Commons) at it, and drives the CLI through `agentstow::run`.
+//! Every test builds a throwaway tree, points `AGENT_SYNC_TARGET_ROOT` (home) and
+//! `AGENT_SYNC_HOME` (Commons) at it, and drives the CLI through `agent_sync::run`.
 //! Nothing here touches the real home directory, and no test reaches inside the
 //! implementation — assertions are on the resulting filesystem, stdout, stderr
 //! and exit code only.
@@ -198,15 +198,15 @@ impl Fixture {
         self.run_with_vars(
             args,
             &[
-                ("AGENTSTOW_TARGET_ROOT", self.home.display().to_string()),
-                ("AGENTSTOW_HOME", self.commons.display().to_string()),
+                ("AGENT_SYNC_TARGET_ROOT", self.home.display().to_string()),
+                ("AGENT_SYNC_HOME", self.commons.display().to_string()),
             ],
         )
     }
 
     /// Run the CLI with an explicit environment — for testing resolution itself.
     pub fn run_with_vars(&self, args: &[&str], vars: &[(&str, String)]) -> Outcome {
-        let mut argv: Vec<String> = vec!["agentstow".to_string()];
+        let mut argv: Vec<String> = vec!["agent-sync".to_string()];
         argv.extend(args.iter().map(|a| a.to_string()));
         let vars: Vec<(String, String)> = vars
             .iter()
@@ -215,7 +215,7 @@ impl Fixture {
 
         let mut out: Vec<u8> = Vec::new();
         let mut err: Vec<u8> = Vec::new();
-        let code = agentstow::run(&argv, &vars, &mut out, &mut err);
+        let code = agent_sync::run(&argv, &vars, &mut out, &mut err);
 
         Outcome {
             code,
@@ -310,8 +310,8 @@ impl Fixture {
     /// reads the real process environment.
     pub fn run_with_env(&self, args: &[&str], extra: &[(&str, &str)]) -> Outcome {
         let mut vars = vec![
-            ("AGENTSTOW_TARGET_ROOT", self.home.display().to_string()),
-            ("AGENTSTOW_HOME", self.commons.display().to_string()),
+            ("AGENT_SYNC_TARGET_ROOT", self.home.display().to_string()),
+            ("AGENT_SYNC_HOME", self.commons.display().to_string()),
         ];
         for (k, v) in extra {
             vars.push((k, v.to_string()));
@@ -328,7 +328,7 @@ impl Fixture {
     }
 }
 
-/// Hold the global lock the way a second agentstow process would, so a test can
+/// Hold the global lock the way a second agent-sync process would, so a test can
 /// prove a concurrent run refuses rather than racing.
 pub struct HeldLock {
     _file: fs::File,

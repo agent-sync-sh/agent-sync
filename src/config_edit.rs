@@ -1,8 +1,8 @@
-//! Writing the tool config, `agentstow.toml` in the XDG config directory.
+//! Writing the tool config, `agent-sync.toml` in the XDG config directory.
 //!
 //! The user hand-writes this file, so edits are format-preserving in the same
 //! way the Codex merge is: `toml_edit` keeps comments, key order and spacing,
-//! and agentstow touches only the tables it was asked to.
+//! and agent-sync touches only the tables it was asked to.
 
 use serde_json::{Map, Value};
 use toml_edit::{Array, DocumentMut, Item};
@@ -111,7 +111,7 @@ pub fn set_mcp_rule(
             .get_mut("mcp")
             .and_then(Item::as_table_mut)
             .ok_or_else(|| Error {
-                message: "`mcp` in agentstow.toml is not a table — left untouched".into(),
+                message: "`mcp` in agent-sync.toml is not a table — left untouched".into(),
             })?;
 
         if mcp.get(server).is_none() {
@@ -123,7 +123,7 @@ pub fn set_mcp_rule(
             .get_mut(server)
             .and_then(Item::as_table_mut)
             .ok_or_else(|| Error {
-                message: format!("mcp.{server} in agentstow.toml is not a table — left untouched"),
+                message: format!("mcp.{server} in agent-sync.toml is not a table — left untouched"),
             })?;
 
         if let Some(agents) = agents {
@@ -155,7 +155,7 @@ pub fn set_mcp_rule(
                 .and_then(Item::as_table_mut)
                 .ok_or_else(|| Error {
                     message: format!(
-                        "mcp.{server}.tweaks in agentstow.toml is not a table — left untouched"
+                        "mcp.{server}.tweaks in agent-sync.toml is not a table — left untouched"
                     ),
                 })?;
             all.set_implicit(true);

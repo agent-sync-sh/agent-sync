@@ -47,7 +47,7 @@ fn the_report_counts_what_could_be_adopted() {
     out.assert_clean()
         .assert_stdout_has("local-thing")
         .assert_stdout_has("another")
-        .assert_stdout_has("agentstow adopt");
+        .assert_stdout_has("agent-sync adopt");
 }
 
 #[test]
@@ -58,7 +58,7 @@ fn the_report_offers_the_mcp_adoption_command() {
 
     out.assert_clean()
         .assert_stdout_has("serena")
-        .assert_stdout_has("agentstow mcp adopt");
+        .assert_stdout_has("agent-sync mcp adopt");
 }
 
 #[test]
@@ -101,7 +101,7 @@ fn init_still_creates_only_the_commons() {
     f.run(&["init"]).assert_clean();
 
     assert!(f.commons().join("skills").is_dir());
-    for agent in agentstow::registry::AGENTS {
+    for agent in agent_sync::registry::AGENTS {
         let root = f.path(agent.root);
         if !["claude", "codex", "pi", "opencode"].contains(&agent.name) {
             assert!(!root.exists(), "init created a root for {}", agent.name);

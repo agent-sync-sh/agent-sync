@@ -1,8 +1,8 @@
 //! The Target registry: one row per known agent, declaring where it keeps each
-//! config family and by which mechanism agentstow reaches it.
+//! config family and by which mechanism agent-sync reaches it.
 //!
 //! Adding an agent is a data change — one [`Agent`] row — never new control
-//! flow. Detection is "the agent's config root exists": agentstow creates
+//! flow. Detection is "the agent's config root exists": agent-sync creates
 //! subdirectories under an existing root, but never a root itself, so an agent
 //! that is not installed stays inert.
 
@@ -99,7 +99,7 @@ pub enum Commands {
 pub enum Agents {
     /// Symlink fan-out into this home-relative directory.
     FanOut(&'static str),
-    /// No subagent surface agentstow targets in v1.
+    /// No subagent surface agent-sync targets in v1.
     None,
 }
 
@@ -115,14 +115,14 @@ pub enum Hooks {
         file: &'static str,
         root_key: &'static str,
     },
-    /// No hook surface agentstow targets in v1.
+    /// No hook surface agent-sync targets in v1.
     None,
 }
 
-/// One Target: an agent and everything agentstow knows about reaching it.
+/// One Target: an agent and everything agent-sync knows about reaching it.
 #[derive(Debug, Clone, Copy)]
 pub struct Agent {
-    /// Stable identifier, used in reports and in `agentstow.toml`.
+    /// Stable identifier, used in reports and in `agent-sync.toml`.
     pub name: &'static str,
     /// Home-relative config root. Its existence *is* detection.
     pub root: &'static str,
@@ -248,7 +248,7 @@ pub const AGENTS: &[Agent] = &[
         name: "claude",
         root: ".claude",
         skills: Skills::FanOut(".claude/skills"),
-        // Claude users keep their own content in CLAUDE.md, so agentstow adds
+        // Claude users keep their own content in CLAUDE.md, so agent-sync adds
         // only the import line — never a symlink over the whole file.
         instructions: Instructions::ImportLine(".claude/CLAUDE.md"),
         mcp: Mcp::KeyMerge {
@@ -295,7 +295,7 @@ pub const AGENTS: &[Agent] = &[
         name: "opencode",
         root: ".config/opencode",
         // OpenCode scans ~/.agents/skills natively. The Commons path is an interop
-        // contract other agents hardcode (ADR-0004), not agentstow's private
+        // contract other agents hardcode (ADR-0004), not agent-sync's private
         // choice, so fan-out here would only create duplicate-name warnings.
         skills: Skills::Native { legacy: None },
         instructions: Instructions::Symlink(".config/opencode/AGENTS.md"),
@@ -351,7 +351,7 @@ pub const AGENTS: &[Agent] = &[
         // Hermes Agent discovers symlinked skills since it began walking with
         // `followlinks=True`. It can also read the Commons directly through its
         // `skills.external_dirs` setting — but that is user configuration
-        // agentstow does not write, and a capability the registry claims must be
+        // agent-sync does not write, and a capability the registry claims must be
         // true unconditionally, so this row states the mechanism that always
         // works.
         skills: Skills::FanOut(".hermes/skills"),
@@ -368,7 +368,7 @@ pub const AGENTS: &[Agent] = &[
         // Gemini CLI reads user skills from ~/.gemini/skills or the
         // ~/.agents/skills alias, and `skills.enabled` defaults to true
         // (https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/skills.md,
-        // verified 2026-08-16). agentstow never fanned skills out to gemini,
+        // verified 2026-08-16). agent-sync never fanned skills out to gemini,
         // so there is no legacy dir to clean.
         skills: Skills::Native { legacy: None },
         instructions: Instructions::Symlink(".gemini/GEMINI.md"),

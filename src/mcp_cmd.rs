@@ -1,4 +1,4 @@
-//! `agentstow mcp list | adopt | remove | enable | disable`.
+//! `agent-sync mcp list | adopt | remove | enable | disable`.
 //!
 //! `remove` is the one operation in the whole tool that deletes something from
 //! a Target. That is deliberate: without state, a name that has vanished from
@@ -146,7 +146,7 @@ pub fn remove(env: &Env, config: &Config, r: &mut Reporter, name: &str) -> i32 {
 
     if !servers.contains_key(name) {
         r.problem(format!(
-            "`{name}` is not in the Commons — agentstow only removes servers it manages"
+            "`{name}` is not in the Commons — agent-sync only removes servers it manages"
         ));
         return EXIT_ERROR;
     }
@@ -207,7 +207,7 @@ pub fn disable(env: &Env, config: &Config, r: &mut Reporter, name: &str) -> i32 
 
     let Some(entry) = servers.get(name) else {
         r.problem(format!(
-            "`{name}` is not in the Commons — agentstow only disables servers it manages"
+            "`{name}` is not in the Commons — agent-sync only disables servers it manages"
         ));
         return EXIT_ERROR;
     };
@@ -227,7 +227,7 @@ pub fn disable(env: &Env, config: &Config, r: &mut Reporter, name: &str) -> i32 
     // Targets first, then the Commons — `mcp remove`'s order: at every point
     // in between, what remains is still coherent. Stripped-but-not-yet-marked
     // is just a missing render the Commons would restore; the rules in
-    // agentstow.toml are not touched, because the server is parked, not gone.
+    // agent-sync.toml are not touched, because the server is parked, not gone.
     for target in target::resolve(env, config) {
         let Some((path, root_key, format)) = mcp_destination(env, &target) else {
             continue;
@@ -273,7 +273,7 @@ pub fn enable(env: &Env, config: &Config, r: &mut Reporter, name: &str) -> i32 {
 
     let Some(entry) = servers.get(name) else {
         r.problem(format!(
-            "`{name}` is not in the Commons — agentstow only enables servers it manages"
+            "`{name}` is not in the Commons — agent-sync only enables servers it manages"
         ));
         return EXIT_ERROR;
     };
@@ -377,13 +377,13 @@ pub fn adopt(env: &Env, config: &Config, r: &mut Reporter, spec: Option<&str>, a
         };
         let Some((agent, name)) = spec.split_once('/') else {
             r.problem(format!(
-                "`{spec}` is not an agent/server pair — try `agentstow mcp adopt claude/serena`"
+                "`{spec}` is not an agent/server pair — try `agent-sync mcp adopt claude/serena`"
             ));
             return EXIT_ERROR;
         };
         let Some(target) = targets.iter().find(|t| t.name == agent) else {
             r.problem(format!(
-                "`{agent}` is not an agent agentstow knows about, or it is not installed"
+                "`{agent}` is not an agent agent-sync knows about, or it is not installed"
             ));
             return EXIT_ERROR;
         };
@@ -461,7 +461,7 @@ pub fn adopt(env: &Env, config: &Config, r: &mut Reporter, spec: Option<&str>, a
             && existing != &absorbed.canonical
         {
             r.problem(format!(
-                "`{name}` differs from the Commons copy — merge it by hand; agentstow will not \
+                "`{name}` differs from the Commons copy — merge it by hand; agent-sync will not \
                  choose which side to discard"
             ));
             continue;
@@ -529,7 +529,7 @@ pub fn adopt(env: &Env, config: &Config, r: &mut Reporter, spec: Option<&str>, a
         }
         if let Some(list) = &allowlist {
             r.line(format!(
-                "  scoped to {} — remove the allowlist in agentstow.toml to share it",
+                "  scoped to {} — remove the allowlist in agent-sync.toml to share it",
                 list.join(", ")
             ));
         }

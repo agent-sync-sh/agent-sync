@@ -2,7 +2,7 @@
 //! native hook arrays.
 //!
 //! Ownership here is **element identity** (ADR-0003): a hook object whose
-//! command string matches a Commons hook is agentstow's to update, and every
+//! command string matches a Commons hook is agent-sync's to update, and every
 //! other element in the same event array belongs to whoever put it there. That
 //! matters more than usual, because these arrays are where several tools
 //! (claude-mem, plugins, the user) all keep their own hooks.
@@ -13,7 +13,7 @@
 //!   hook in `config.toml`, a different file from the `hooks.json` this writes,
 //!   so approving code execution stays the user's decision by construction.
 //! * **Scripts are not managed.** A Commons command must be a path that means the
-//!   same thing to every agent; agentstow syncs the declaration, not the file
+//!   same thing to every agent; agent-sync syncs the declaration, not the file
 //!   it runs.
 //! * **`${env:VAR}` is not expanded.** The command string *is* the identity, so
 //!   it must not vary with the ambient environment — a resolved command would
@@ -83,7 +83,7 @@ pub struct Hook {
     pub timeout: Option<i64>,
 }
 
-/// What agentstow found for one hook in one agent.
+/// What agent-sync found for one hook in one agent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum State {
     /// Present and exactly what the Commons renders.
@@ -654,7 +654,7 @@ fn read_hook_file(path: &Path, event: &str) -> Result<Vec<Hook>, Error> {
         {
             return Err(Error {
                 message: format!(
-                    "{}: `type = \"{kind}\"` — agentstow syncs command hooks only",
+                    "{}: `type = \"{kind}\"` — agent-sync syncs command hooks only",
                     path.display()
                 ),
             });

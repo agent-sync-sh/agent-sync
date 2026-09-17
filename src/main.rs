@@ -10,7 +10,7 @@ fn main() -> ExitCode {
     let mut out = stdout.lock();
     let mut err = stderr.lock();
 
-    let code = agentstow::run(&args, &vars, &mut out, &mut err);
+    let code = agent_sync::run(&args, &vars, &mut out, &mut err);
 
     let _ = out.flush();
     let _ = err.flush();

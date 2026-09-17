@@ -292,7 +292,7 @@ fn short(command: &str) -> String {
 
 /// The MCP family: one Commons file, rendered and key-merged per agent.
 fn sync_mcp(survey: &mcp::Survey, r: &mut Reporter, dry_run: bool) -> usize {
-    // A config agentstow cannot parse is a real fault worth an exit code, but
+    // A config agent-sync cannot parse is a real fault worth an exit code, but
     // it must not stop the Targets that are healthy.
     for skipped in &survey.skipped {
         r.problem(skipped);

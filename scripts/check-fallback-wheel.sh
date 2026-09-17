@@ -24,7 +24,7 @@ python3 -m venv "$venv" >/dev/null 2>&1 || { echo "could not create a venv" >&2;
   || { echo "pip install of the fallback failed" >&2; exit 1; }
 
 out="$venv/fallback.out"
-if "$venv/bin/agentstow" >"$out" 2>&1; then
+if "$venv/bin/agent-sync" >"$out" 2>&1; then
   echo "the fallback exited 0; it must fail and explain itself" >&2
   cat "$out" >&2
   exit 1

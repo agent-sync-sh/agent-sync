@@ -16,7 +16,7 @@ fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
 
 say "cargo build --release"
 cargo build --release --quiet --manifest-path "$ROOT/Cargo.toml"
-VERSION="$("$ROOT/target/release/agentstow" --version | awk '{print $NF}')"
+VERSION="$("$ROOT/target/release/agent-sync" --version | awk '{print $NF}')"
 [ -n "$VERSION" ] || fail "the binary reports no version"
 echo "binary reports version $VERSION"
 
@@ -27,13 +27,13 @@ bash "$ROOT/scripts/build-npm.sh" "$WORK/pkgs" "$HOST_TARGET" >/dev/null
 for target in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-arm64 win32-x64; do
   [ -d "$WORK/pkgs/$target" ] && continue
   mkdir -p "$WORK/pkgs/$target/bin"
-  printf '#!/bin/sh\necho stub\n' > "$WORK/pkgs/$target/bin/agentstow"
-  chmod +x "$WORK/pkgs/$target/bin/agentstow"
+  printf '#!/bin/sh\necho stub\n' > "$WORK/pkgs/$target/bin/agent-sync"
+  chmod +x "$WORK/pkgs/$target/bin/agent-sync"
   os=darwin; case "$target" in linux-*) os=linux ;; win32-*) os=win32 ;; esac
   cpu=arm64; case "$target" in *-x64) cpu=x64 ;; esac
   cat > "$WORK/pkgs/$target/package.json" <<JSON
-{ "name": "@agentstow/$target", "version": "$VERSION", "license": "MIT",
-  "os": ["$os"], "cpu": ["$cpu"], "files": ["bin/agentstow"] }
+{ "name": "@agent-sync-sh/$target", "version": "$VERSION", "license": "MIT",
+  "os": ["$os"], "cpu": ["$cpu"], "files": ["bin/agent-sync"] }
 JSON
 done
 ls "$WORK/pkgs"
@@ -54,23 +54,23 @@ ls "$WORK/tarballs"
 say "offline install from local tarballs"
 mkdir -p "$WORK/consumer"
 (cd "$WORK/consumer" && npm init -y --loglevel error >/dev/null)
-HOST_TARBALL="$(ls "$WORK"/tarballs/agentstow-"$HOST_TARGET"-*.tgz 2>/dev/null || true)"
+HOST_TARBALL="$(ls "$WORK"/tarballs/agent-sync-sh-"$HOST_TARGET"-*.tgz 2>/dev/null || true)"
 [ -n "$HOST_TARBALL" ] || HOST_TARBALL="$(ls "$WORK"/tarballs/*"$HOST_TARGET"*.tgz)"
-LAUNCHER_TARBALL="$(ls "$WORK"/tarballs/agentstow-"$VERSION".tgz)"
+LAUNCHER_TARBALL="$(ls "$WORK"/tarballs/agent-sync-sh-"$VERSION".tgz)"
 # --offline proves nothing is fetched: npm fails outright if it needs the network.
 (cd "$WORK/consumer" && npm install --offline --no-audit --no-fund --loglevel error \
   "$HOST_TARBALL" "$LAUNCHER_TARBALL") || fail "offline install failed"
 echo "installed offline"
 
 say "the installed launcher runs the real binary"
-OUTPUT="$("$WORK/consumer/node_modules/.bin/agentstow" --version)"
+OUTPUT="$("$WORK/consumer/node_modules/.bin/agent-sync" --version)"
 echo "$OUTPUT"
 case "$OUTPUT" in
   *"$VERSION"*) ;;
   *) fail "launcher did not report the built version" ;;
 esac
-"$WORK/consumer/node_modules/.bin/agentstow" doctor >/dev/null 2>&1 || true
-CODE=0; "$WORK/consumer/node_modules/.bin/agentstow" frobnicate >/dev/null 2>&1 || CODE=$?
+"$WORK/consumer/node_modules/.bin/agent-sync" doctor >/dev/null 2>&1 || true
+CODE=0; "$WORK/consumer/node_modules/.bin/agent-sync" frobnicate >/dev/null 2>&1 || CODE=$?
 [ "$CODE" -eq 1 ] || fail "launcher did not propagate the exit code (got $CODE)"
 echo "exit code propagated"
 
@@ -78,8 +78,8 @@ say "launcher fails clearly with no platform package"
 mkdir -p "$WORK/bare" && (cd "$WORK/bare" && npm init -y --loglevel error >/dev/null)
 (cd "$WORK/bare" && npm install --offline --no-audit --no-fund --loglevel error \
   --no-optional "$LAUNCHER_TARBALL") >/dev/null 2>&1 || true
-if [ -x "$WORK/bare/node_modules/.bin/agentstow" ]; then
-  MSG="$("$WORK/bare/node_modules/.bin/agentstow" --version 2>&1 || true)"
+if [ -x "$WORK/bare/node_modules/.bin/agent-sync" ]; then
+  MSG="$("$WORK/bare/node_modules/.bin/agent-sync" --version 2>&1 || true)"
   case "$MSG" in
     *"no prebuilt binary"*|*"$VERSION"*) echo "handled" ;;
     *) fail "unhelpful message with no platform package: $MSG" ;;
@@ -90,7 +90,7 @@ fi
 # registry, where two outcomes are expected before the first real release and
 # are reported rather than treated as pipeline faults:
 #   - the launcher version is already taken (the 0.0.1 name-claim placeholder)
-#   - the @agentstow scope does not exist yet, so scoped packages cannot resolve
+#   - the @agent-sync-sh scope does not exist yet, so scoped packages cannot resolve
 # See docs/release-runbook.md.
 say "npm publish --dry-run (registry)"
 BLOCKED=0
@@ -137,16 +137,16 @@ if command -v python3 >/dev/null 2>&1; then
     [ -n "$fallback" ] || fail "the py3-none-any fallback wheel was not built"
     python3 -m venv "$WORK/wheelvenv" >/dev/null 2>&1 || fail "could not create a venv"
     "$WORK/wheelvenv/bin/pip" install --quiet --no-index "$whl" || fail "pip install of the wheel failed"
-    [ -x "$WORK/wheelvenv/bin/agentstow" ] || fail "the installed wheel binary is not executable"
-    "$WORK/wheelvenv/bin/agentstow" --version >/dev/null || fail "the installed wheel binary does not run"
+    [ -x "$WORK/wheelvenv/bin/agent-sync" ] || fail "the installed wheel binary is not executable"
+    "$WORK/wheelvenv/bin/agent-sync" --version >/dev/null || fail "the installed wheel binary does not run"
     echo "  $(basename "$whl"): installs and runs"
 
     # pip must prefer the platform wheel when both are offered, or every
     # supported user would silently get the fallback instead of the binary.
     python3 -m venv "$WORK/pickvenv" >/dev/null 2>&1 || fail "could not create a venv"
     "$WORK/pickvenv/bin/pip" install --quiet --no-index \
-      --find-links "$WORK/wheelhouse" agentstow || fail "resolving from the wheelhouse failed"
-    "$WORK/pickvenv/bin/agentstow" --version >/dev/null \
+      --find-links "$WORK/wheelhouse" agent-sync-sh || fail "resolving from the wheelhouse failed"
+    "$WORK/pickvenv/bin/agent-sync" --version >/dev/null \
       || fail "pip chose the fallback over the platform wheel"
     echo "  pip prefers the platform wheel over py3-none-any"
 

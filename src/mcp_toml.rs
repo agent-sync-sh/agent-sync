@@ -3,7 +3,7 @@
 //! Codex keeps its MCP servers in the same file as its model settings, project
 //! trust levels, plugin enablement and hook trust hashes — and that file has
 //! comments in it. So this is a *format-preserving* merge: `toml_edit` keeps
-//! everything it was not asked to change, down to whitespace, and agentstow
+//! everything it was not asked to change, down to whitespace, and agent-sync
 //! replaces exactly the `[mcp_servers.<name>]` tables it owns.
 //!
 //! Reading and writing are deliberately asymmetric. Existing entries are

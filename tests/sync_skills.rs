@@ -329,25 +329,25 @@ fn missing_commons_is_an_error_that_names_the_fix() {
 
     f.run(&["sync"])
         .assert_code(1)
-        .assert_stderr_has("agentstow init");
+        .assert_stderr_has("agent-sync init");
 }
 
 #[test]
 fn a_second_process_holding_the_lock_fails_cleanly() {
     let f = machine();
     f.commons_skill("research");
-    let _held = common::hold_lock(f.path(".local/state/agentstow/lock"));
+    let _held = common::hold_lock(f.path(".local/state/agent-sync/lock"));
 
     let out = f.run_with_vars(
         &["sync"],
         &[
-            ("AGENTSTOW_TARGET_ROOT", f.home().display().to_string()),
-            ("AGENTSTOW_HOME", f.commons().display().to_string()),
-            ("AGENTSTOW_LOCK_TIMEOUT_MS", "150".to_string()),
+            ("AGENT_SYNC_TARGET_ROOT", f.home().display().to_string()),
+            ("AGENT_SYNC_HOME", f.commons().display().to_string()),
+            ("AGENT_SYNC_LOCK_TIMEOUT_MS", "150".to_string()),
         ],
     );
 
-    out.assert_code(1).assert_stderr_has("another agentstow");
+    out.assert_code(1).assert_stderr_has("another agent-sync");
     assert!(
         !f.exists(".claude/skills/research"),
         "the blocked run must not have written anything"

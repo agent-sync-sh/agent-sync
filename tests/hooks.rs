@@ -146,7 +146,7 @@ fn codex_trust_hashes_are_never_touched() {
     let f = machine();
     one_hook(&f);
     // Hook definitions live in hooks.json; trust lives in config.toml. Writing
-    // one must never reach the other, or agentstow would be approving code
+    // one must never reach the other, or agent-sync would be approving code
     // execution on the user's behalf.
     let trust = "[features]\nhooks = true\n\n[hooks.state]\n\n\
                  [hooks.state.\"/home/u/.codex/hooks.json:session_start:0:0\"]\n\

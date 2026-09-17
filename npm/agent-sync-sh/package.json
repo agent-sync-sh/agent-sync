@@ -1,0 +1,41 @@
+{
+  "name": "agent-sync-sh",
+  "version": "1.0.0",
+  "description": "Canonical configs, fanned out to all your AI coding agents from the Commons, the canonical ~/.agents directory",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agent-sync-sh/agent-sync.git"
+  },
+  "homepage": "https://agent-sync.sh",
+  "keywords": [
+    "ai-agents",
+    "claude-code",
+    "codex",
+    "opencode",
+    "skills",
+    "agents-md",
+    "mcp",
+    "dotfiles",
+    "symlink",
+    "stow"
+  ],
+  "bin": {
+    "agent-sync": "bin/agent-sync.js"
+  },
+  "files": [
+    "bin/agent-sync.js",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "optionalDependencies": {
+    "@agent-sync-sh/darwin-arm64": "1.0.0",
+    "@agent-sync-sh/darwin-x64": "1.0.0",
+    "@agent-sync-sh/linux-arm64": "1.0.0",
+    "@agent-sync-sh/linux-x64": "1.0.0",
+    "@agent-sync-sh/win32-arm64": "1.0.0",
+    "@agent-sync-sh/win32-x64": "1.0.0"
+  }
+}

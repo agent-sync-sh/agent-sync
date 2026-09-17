@@ -27,7 +27,7 @@ pub struct Entry {
     pub path: PathBuf,
 }
 
-/// Something in the Commons that agentstow will not sync, and why.
+/// Something in the Commons that agent-sync will not sync, and why.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Issue {
     /// A dot-prefixed name: invisible to most agents' scanners, so never synced.
@@ -76,7 +76,7 @@ pub struct Scan {
 /// advice cannot drift between commands.
 pub fn missing_message(root: &Path) -> String {
     format!(
-        "no Commons at {} — run `agentstow init` to create one",
+        "no Commons at {} — run `agent-sync init` to create one",
         root.display()
     )
 }

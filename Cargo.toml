@@ -1,14 +1,30 @@
 [package]
-name = "agentstow"
-version = "2.0.6"
+# The published name carries the -sh suffix because bare `agent-sync` is taken
+# on crates.io, npm and PyPI by three unrelated projects in this same niche. The
+# suffix is the domain and the org, so `cargo install agent-sync-sh` reads as
+# "the thing from agent-sync.sh" — see DECISIONS.md, 2026-09-16.
+name = "agent-sync-sh"
+version = "1.0.0"
 edition = "2024"
 rust-version = "1.97"
 license = "MIT"
-description = "DEPRECATED — agentstow is now agent-sync: install the `agent-sync-sh` crate instead. Canonical configs, fanned out to all your AI coding agents from the Commons, the canonical ~/.agents directory"
-repository = "https://github.com/agentstow/agentstow"
+description = "Canonical configs, fanned out to all your AI coding agents from the Commons, the canonical ~/.agents directory"
+repository = "https://github.com/agent-sync-sh/agent-sync"
+homepage = "https://agent-sync.sh"
 readme = "README.md"
 keywords = ["ai-agents", "claude-code", "codex", "skills", "symlink"]
 categories = ["command-line-utilities", "development-tools"]
+
+# Package, library and binary all differ, so each is named explicitly rather
+# than derived: users type `agent-sync`, the crate is `agent-sync-sh`, and Rust
+# cannot have a hyphen in a crate path.
+[lib]
+name = "agent_sync"
+path = "src/lib.rs"
+
+[[bin]]
+name = "agent-sync"
+path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }

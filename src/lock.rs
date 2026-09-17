@@ -18,7 +18,7 @@ pub const DEFAULT_TIMEOUT_MS: u64 = 30_000;
 /// tests prove a busy lock fails cleanly without a 30 second pause.
 pub fn timeout(env: &Env) -> Duration {
     let ms = env
-        .var("AGENTSTOW_LOCK_TIMEOUT_MS")
+        .var("AGENT_SYNC_LOCK_TIMEOUT_MS")
         .and_then(|v| v.parse::<u64>().ok())
         .unwrap_or(DEFAULT_TIMEOUT_MS);
     Duration::from_millis(ms)
@@ -31,7 +31,7 @@ pub struct Lock {
 
 #[derive(Debug)]
 pub enum Error {
-    /// Another agentstow process held the lock for longer than we waited.
+    /// Another agent-sync process held the lock for longer than we waited.
     Busy,
     Io(std::io::Error),
 }
@@ -41,9 +41,9 @@ impl std::fmt::Display for Error {
         match self {
             Error::Busy => write!(
                 f,
-                "another agentstow process is running — try again when it finishes"
+                "another agent-sync process is running — try again when it finishes"
             ),
-            Error::Io(e) => write!(f, "cannot take the agentstow lock: {e}"),
+            Error::Io(e) => write!(f, "cannot take the agent-sync lock: {e}"),
         }
     }
 }

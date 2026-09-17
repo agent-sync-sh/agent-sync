@@ -1,4 +1,4 @@
-//! agentstow — sync AI coding agent configs from one canonical Commons.
+//! agent-sync — sync AI coding agent configs from one canonical Commons.
 //!
 //! The single testing seam is [`run`]: it takes argv, the process environment,
 //! and writers for stdout/stderr, and returns the process exit code. Every
@@ -91,7 +91,7 @@ pub fn run(
         if registry::by_name(agent).is_none() {
             let _ = writeln!(
                 err,
-                "error: mcp.{server} names `{agent}`, which is not an agent agentstow knows about"
+                "error: mcp.{server} names `{agent}`, which is not an agent agent-sync knows about"
             );
             return EXIT_ERROR;
         }
@@ -99,7 +99,8 @@ pub fn run(
 
     let mut reporter = report::Reporter::new(out, err);
 
-    match parsed.command {
+    // A bare invocation is `sync`, the everyday command.
+    match parsed.command.unwrap_or(cli::Command::Sync { dry_run: false }) {
         cli::Command::Sync { dry_run } => sync::run(&env, &config, &mut reporter, dry_run),
         cli::Command::Init => init::run(&env, &config, &mut reporter),
         cli::Command::Adopt { path, dry_run } => {

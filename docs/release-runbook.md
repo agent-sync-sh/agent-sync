@@ -1,6 +1,6 @@
 # Release runbook
 
-Since 1.1.2 a release is published by CI: pushing a `vX.Y.Z` tag makes the
+Since 1.1.2 a release is published by CI: pushing an `agent-sync-vX.Y.Z` tag makes the
 `release` workflow build, verify, and — only on the tag push — publish to
 crates.io and npm. Both registries are authenticated with **OIDC trusted
 publishing**: the workflow mints short-lived credentials per run, so there is
@@ -8,96 +8,92 @@ no long-lived token to store, rotate, or leak, and npm's 2FA enforcement is
 satisfied without an OTP. `scripts/verify-packaging.sh` runs the same
 verification locally.
 
-## One-time setup — trusted publishing on both registries
+## One-time setup — trusted publishing on all three registries
 
 Done once per registry from the owning account (`soulmachine`); a publish from
-CI fails with an auth error until this exists.
+CI fails with an auth error until this exists. The move to
+`agent-sync-sh/agent-sync` invalidated every entry registered under the old
+owner and repo, so all of them have to be re-registered against the names below.
 
-- **crates.io** — <https://crates.io/crates/agentstow/settings> → *Trusted
-  Publishing* → *Add*: repository owner `agentstow`, repository name
-  `agentstow`, workflow filename `release.yml`, environment left blank.
-- **PyPI** — now that the project exists, the entry lives at
-  <https://pypi.org/manage/project/agentstow/settings/publishing/>: owner
-  `agentstow`, repository name `agentstow`, workflow name `release.yml`,
-  environment **`pypi`**. Before the first release it was instead registered as
-  a *pending* publisher from <https://pypi.org/manage/account/publishing/>;
-  PyPI creates the project on the first successful OIDC upload, so unlike npm
-  and crates.io there was no manual bootstrap publish and no token ever
-  existed.
+- **crates.io** — <https://crates.io/crates/agent-sync-sh/settings> → *Trusted
+  Publishing* → *Add*: repository owner `agent-sync-sh`, repository name
+  `agent-sync`, workflow filename `release.yml`, environment left blank.
+- **PyPI** — once the project exists the entry lives at
+  <https://pypi.org/manage/project/agent-sync-sh/settings/publishing/>: owner
+  `agent-sync-sh`, repository name `agent-sync`, workflow name `release.yml`,
+  environment **`pypi`**. Before the first release, register it instead as a
+  *pending* publisher from <https://pypi.org/manage/account/publishing/>: PyPI
+  creates the project on the first successful OIDC upload, so unlike npm and
+  crates.io it needs no bootstrap publish and no token ever exists.
 
   Unlike the other two registries this one names an environment, because PyPI
-  recommends it and this entry was the newest. Three things must agree or the
-  publish fails at token exchange: the `environment: pypi` key on the
-  `publish-pypi` job, a GitHub environment named `pypi`, and this field. The
-  environment additionally carries a `v*` **tag** deployment policy, so a run
-  on a branch cannot reach it even though it sits in the same workflow file.
-- **npm** — for **each package** (`agentstow`, `@agentstow/darwin-arm64`,
-  `@agentstow/darwin-x64`, `@agentstow/linux-arm64`, `@agentstow/linux-x64`,
-  `@agentstow/win32-arm64`, `@agentstow/win32-x64`): package page → *Settings*
-  → *Trusted Publisher* → *GitHub Actions*: organization `agentstow`,
-  repository `agentstow`, workflow filename `release.yml`, environment left
-  blank. Trusted publishing also generates provenance attestations; the
-  `repository` field every package already carries must keep matching the
-  GitHub repo or the publish is rejected.
+  recommends it. Three things must agree or the publish fails at token
+  exchange: the `environment: pypi` key on the `publish-pypi` job, a GitHub
+  environment named `pypi`, and this field. The environment additionally
+  carries an `agent-sync-v*` **tag** deployment policy, so a run on a branch
+  cannot reach it even though it sits in the same workflow file.
 
-## Prerequisites — both settled 2026-08-13
+  **This is the quiet one.** A wrong tag policy does not fail loudly — the job
+  simply never receives a credential. Re-check the environment after any change
+  to the tag namespace, which the rename was.
+- **npm** — for **each of the seven packages** (`agent-sync-sh`,
+  `@agent-sync-sh/darwin-arm64`, `@agent-sync-sh/darwin-x64`,
+  `@agent-sync-sh/linux-arm64`, `@agent-sync-sh/linux-x64`,
+  `@agent-sync-sh/win32-arm64`, `@agent-sync-sh/win32-x64`): package page →
+  *Settings* → *Trusted Publisher* → *GitHub Actions*: organization
+  `agent-sync-sh`, repository `agent-sync`, workflow filename `release.yml`,
+  environment left blank. Trusted publishing also generates provenance
+  attestations; the `repository` field every package carries must keep matching
+  the GitHub repo exactly or the publish is rejected.
 
-Frank claimed the organisation and set the version to `1.0.0`. Both checks below
-now pass; they are kept because they are what to re-run if a release ever fails
-at the publish step.
+## Bootstrapping the names
 
-### 1. The `@agentstow` npm organisation — **claimed**
+**Trusted publishing authenticates a publish; it does not create a package.**
+Neither crates.io nor npm will create a name from an OIDC token, so each needs
+one manual, credentialed publish before its trust entry can be registered at
+all. PyPI is the exception.
 
-The four platform packages are named `@agentstow/darwin-arm64`,
-`@agentstow/darwin-x64`, `@agentstow/linux-arm64`, `@agentstow/linux-x64`. A
-scoped name requires the scope to exist and the publishing account to belong to
-it. Verified on 2026-08-13:
+| Registry | Name | Created by OIDC? |
+|---|---|---|
+| crates.io | `agent-sync-sh` | no — `cargo publish` once with a token |
+| npm | `agent-sync-sh`, `@agent-sync-sh/<target>` ×6 | no — `npm publish` once with an OTP |
+| PyPI | `agent-sync-sh` | yes — register a *pending* publisher instead |
 
-```
-$ npm view @agentstow/darwin-arm64 version
-npm error 404 Not Found
+### The `agent-sync-sh` npm organisation
 
-$ npm org ls agentstow
-npm error 403 Forbidden — You may not perform that action with these credentials.
-```
+The six platform packages are scoped `@agent-sync-sh/<target>`, and a scoped
+name needs the scope to exist and the publishing account to belong to it:
 
-Those were the readings *before* the org existed. Note that `npm org ls` still
-returns 403 from this machine's credentials: the CLI token can publish but is
-not authorised to read organisation membership, so a 403 there is not evidence
-either way. The publish itself is what settles it. To claim the scope:
-
-1. Sign in to npmjs.com as `soulmachine` (the account that owns `agentstow`).
-2. Create an organisation named exactly `agentstow`
+1. Sign in to npmjs.com as `soulmachine`.
+2. Create an organisation named exactly `agent-sync-sh`
    (<https://www.npmjs.com/org/create>). The **free** tier is enough — public
    packages only, which is what these are.
-3. Confirm it worked: `npm org ls agentstow` should list `soulmachine` as an
-   owner rather than returning 403.
+3. `npm org ls agent-sync-sh` should list `soulmachine` as an owner. A 403 is
+   not evidence either way: this machine's credential can publish but is not
+   authorised to read organisation membership. The publish is what settles it.
 
-**A passing dry run never proved this.** `npm publish --dry-run` packs and
+**A passing dry run proves nothing here.** `npm publish --dry-run` packs and
 validates locally; it does not check that the scope exists or that you may
-publish into it. The four platform packages reported `ok` while the scope was
-still unclaimed, so that signal is worth nothing here — which is why this
-section exists rather than trusting the script.
+publish into it. Under the old name four platform packages reported `ok` while
+the scope was still unclaimed, which is why this section exists rather than
+trusting the script.
 
-If the name turns out to be taken, the alternative is unscoped names
-(`agentstow-darwin-arm64` and so on). That changes `optionalDependencies` in
-`npm/agentstow/package.json` and the naming in `scripts/build-npm.sh`, and
-nothing else — the launcher resolves whatever those names say.
+If a name turns out to be taken, the alternative is unscoped
+(`agent-sync-sh-darwin-arm64` and so on). That changes `optionalDependencies`
+in `npm/agent-sync-sh/package.json` and the naming in `scripts/build-npm.sh`,
+and nothing else — the launcher resolves whatever those names say.
 
-### 2. The published version — **set to `1.0.0`**
+### npm 2FA on the bootstrap publishes
 
-`agentstow@0.0.1` is the name-claim placeholder, published 2026-08-13 and owned
-by `soulmachine`. A release cannot reuse it:
+The account enforces 2FA on **writes**, not only on sign-in, so each bootstrap
+publish needs an OTP or it fails with `EOTP`. The browser approval flow asks
+once **per package** and the approval expires within minutes, so seven
+interactive approvals in a row is not workable: read one fresh code and pass it
+as `--otp` to all seven back-to-back.
 
-```
-$ npm publish --dry-run       # in npm/agentstow
-npm error You cannot publish over the previously published versions: 0.0.1.
-```
-
-`Cargo.toml` now says `1.0.0`, and `scripts/verify-packaging.sh` confirms all
-five packages dry-run cleanly at that version. `scripts/build-npm.sh` reads the
-version from `Cargo.toml` and stamps every package, so the crate and all five
-npm packages stay in lockstep by construction — a release is a one-line bump.
+npm is retiring 2FA-bypass tokens — account changes from August 2026, direct
+publishing from January 2027 — so this bootstrap path has a shelf life. It is
+one more reason not to add platform packages casually.
 
 ## Releasing
 
@@ -106,7 +102,7 @@ npm packages stay in lockstep by construction — a release is a one-line bump.
    toolchain.
 2. `./scripts/verify-packaging.sh` — must end with *Local packaging checks
    passed* and no blocked packages.
-3. Commit, tag `vX.Y.Z`, push the tag. The tag must match `Cargo.toml` — a
+3. Commit, tag `agent-sync-vX.Y.Z`, push the tag. The tag must match `Cargo.toml` — a
    `guard` job fails the run otherwise. The `release` workflow cross-builds
    all six targets, assembles the packages, installs them offline, dry-run
    publishes, then publishes the crate, all seven npm packages and the six
@@ -114,7 +110,7 @@ npm packages stay in lockstep by construction — a release is a one-line bump.
    the regenerated Homebrew formula to main. The registry publish jobs run only on the tag
    push — never for `workflow_dispatch` or pull requests. The `release` and
    `tap` jobs are gated on the ref instead, so both also run for a
-   `workflow_dispatch` made **at a v\* tag**: the binaries and the formula can
+   `workflow_dispatch` made **at an `agent-sync-v*` tag**: the binaries and the formula can
    be rebuilt without moving the tag, and re-runs overwrite the assets rather
    than failing.
 4. Verify as described below once the workflow is green.
@@ -139,8 +135,8 @@ while the tap is broken. After any tag move, publish it again and prove an
 anonymous download works:
 
 ```sh
-gh release edit vX.Y.Z --draft=false --verify-tag
-curl -fsSLI https://github.com/agentstow/agentstow/releases/download/vX.Y.Z/agentstow-X.Y.Z-darwin-arm64.tar.gz
+gh release edit agent-sync-vX.Y.Z --draft=false --verify-tag
+curl -fsSLI https://github.com/agent-sync-sh/agent-sync/releases/download/agent-sync-vX.Y.Z/agent-sync-X.Y.Z-darwin-arm64.tar.gz
 ```
 
 GitHub's asset CDN trails the un-draft by around half a minute, so a 404 in the
@@ -163,7 +159,7 @@ If CI publishing is unavailable, publish by hand from the workflow's
    for target in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
      (cd "dist/$target" && npm publish --access public)
    done
-   (cd dist/agentstow && npm publish --access public)
+   (cd dist/agent-sync-sh && npm publish --access public)
    ```
    Order matters. The launcher declares the platform packages as optional
    dependencies; publishing it first leaves a window where installing it
@@ -176,7 +172,7 @@ If CI publishing is unavailable, publish by hand from the workflow's
 `scripts/build-wheels.py` packages the **already-built** binaries into one wheel
 per platform. Nothing is compiled: there is no `pyproject.toml`, no maturin, and
 no Python code in the wheels — each carries the same binary the tarball and the
-npm package ship, in `agentstow-<version>.data/scripts/`, which pip installs
+npm package ship, in `agent_sync_sh-<version>.data/scripts/`, which pip installs
 straight onto PATH.
 
 A seventh wheel, `py3-none-any`, carries no binary at all — just a console
@@ -194,7 +190,7 @@ Three things are easy to get wrong and are guarded in CI:
   one tag resolves.
 - **The executable bit.** pip decides with `stat.S_ISREG(mode) and mode & 0o111`,
   so the zip entry needs `S_IFREG` set, not a bare `0o755`. Without it pip
-  installs a **non-executable** `agentstow` to the venv's `bin/` — a command on
+  installs a **non-executable** `agent-sync` to the venv's `bin/` — a command on
   PATH that cannot run, and one that `--version` in the build never catches
   because the build never installs. The `wheels` job asserts `test -x` after a
   real `pip install` for exactly this reason.
@@ -220,17 +216,17 @@ bump would otherwise produce.
 
 ## The Homebrew tap
 
-The tap is this repository. There is no separate `homebrew-agentstow` repo, so
-users tap it by URL — the short `brew tap agentstow/agentstow` form would look
-for `agentstow/homebrew-agentstow` and 404:
+The tap is this repository. There is no separate `homebrew-agent-sync` repo, so
+users tap it by URL — the short `brew tap agent-sync-sh/agent-sync` form would look
+for `agent-sync/homebrew-agent-sync` and 404:
 
 ```sh
-brew tap agentstow/tap https://github.com/agentstow/agentstow
-brew trust agentstow/tap      # Homebrew 6 will not load an untrusted third-party tap
-brew install agentstow
+brew tap agent-sync-sh/tap https://github.com/agent-sync-sh/agent-sync
+brew trust agent-sync-sh/tap      # Homebrew 6 will not load an untrusted third-party tap
+brew install agent-sync
 ```
 
-`Formula/agentstow.rb` is **generated — never hand-edit it.** The `tap` job runs
+`Formula/agent-sync.rb` is **generated — never hand-edit it.** The `tap` job runs
 `scripts/update-formula.sh <tag>`, which reads the `SHA256SUMS.txt` already
 published on that release and rewrites the file whole, then commits it to main.
 Two consequences worth knowing:
@@ -246,39 +242,39 @@ the asset URL, and `brew audit` rejects the redundant stanza.
 **Manual fallback.** If the `tap` job fails but the release assets are up:
 
 ```sh
-scripts/update-formula.sh vX.Y.Z
-git add Formula/agentstow.rb && git commit -m "Homebrew formula: vX.Y.Z" && git push
+scripts/update-formula.sh agent-sync-vX.Y.Z
+git add Formula/agent-sync.rb && git commit -m "Homebrew formula: agent-sync-vX.Y.Z" && git push
 ```
 
 **Verifying the tap** (`brew fetch` proves the URL and checksum without
 installing anything):
 
 ```sh
-brew tap agentstow/tap https://github.com/agentstow/agentstow
-brew trust agentstow/tap
-brew info agentstow          # should report the version just released
-brew audit agentstow/tap/agentstow
-brew fetch agentstow
+brew tap agent-sync-sh/tap https://github.com/agent-sync-sh/agent-sync
+brew trust agent-sync-sh/tap
+brew info agent-sync          # should report the version just released
+brew audit agent-sync-sh/tap/agent-sync
+brew fetch agent-sync
 ```
 
 ## Verifying
 
 1. **Wait for propagation before verifying.** A package name that is new to the
    registry is not readable the instant `npm publish` returns, even though the
-   upload succeeded. On the 1.0.0 release all four `@agentstow/*` packages
+   upload succeeded. On the 1.0.0 release all four `@agent-sync-sh/*` packages
    returned `PUT 200` and then 404 on `GET` for several minutes, appearing one
-   at a time; the `agentstow` launcher was visible immediately only because that
+   at a time; the `agent-sync-sh` launcher was visible immediately only because that
    name already existed. A 404 straight after publishing is not a failed
    publish — check the npm debug log for `PUT 200` before assuming anything is
    wrong, and re-check the registry rather than republishing.
    ```sh
-   until curl -sf -o /dev/null https://registry.npmjs.org/@agentstow%2Fdarwin-arm64; do sleep 15; done
+   until curl -sf -o /dev/null https://registry.npmjs.org/@agent-sync-sh%2Fdarwin-arm64; do sleep 15; done
    ```
 2. Verify from a clean directory, with the cache cleared so a stale packument
    cannot mask the result:
    ```sh
    npm cache clean --force
-   npm install --no-save agentstow && ./node_modules/.bin/agentstow --version
+   npm install --no-save agent-sync-sh && ./node_modules/.bin/agent-sync --version
    ```
 
 ## Notes
@@ -306,6 +302,6 @@ brew fetch agentstow
   the one target CI never executes.
 - **A new platform package cannot bootstrap itself.** npm trusted publishing
   only publishes into packages that already exist, so the *first* release of a
-  new `@agentstow/*` package must be published manually with an OTP (from a
+  new `@agent-sync-sh/*` package must be published manually with an OTP (from a
   local `scripts/build-npm.sh dist` or the CI artifact), after which its
   trusted publisher is configured on npmjs.com and CI takes over.

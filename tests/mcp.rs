@@ -7,7 +7,7 @@ use common::Fixture;
 use std::os::unix::fs::PermissionsExt;
 
 /// A canary that must never appear in any output stream.
-const CANARY: &str = "AGENTSTOW-CANARY-b7f3e1";
+const CANARY: &str = "AGENT-SYNC-CANARY-b7f3e1";
 
 fn machine() -> Fixture {
     let f = Fixture::new();
@@ -384,7 +384,7 @@ fn a_malformed_agent_config_is_reported_not_overwritten() {
         "an unparseable file is left exactly as found"
     );
     assert!(
-        !f.present(".claude.json.agentstow"),
+        !f.present(".claude.json.agent-sync"),
         "and no scratch file is left beside it"
     );
 }
@@ -462,11 +462,11 @@ fn status_reports_mcp_in_json() {
 fn a_held_lock_stops_the_write() {
     let f = machine();
     f.commons_mcp(one_server());
-    let _held = common::hold_lock(f.path(".local/state/agentstow/lock"));
+    let _held = common::hold_lock(f.path(".local/state/agent-sync/lock"));
 
-    let out = f.run_with_env(&["sync"], &[("AGENTSTOW_LOCK_TIMEOUT_MS", "150")]);
+    let out = f.run_with_env(&["sync"], &[("AGENT_SYNC_LOCK_TIMEOUT_MS", "150")]);
 
-    out.assert_code(1).assert_stderr_has("another agentstow");
+    out.assert_code(1).assert_stderr_has("another agent-sync");
     assert!(!f.present(".claude.json"));
 }
 

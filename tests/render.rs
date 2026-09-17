@@ -1,4 +1,4 @@
-//! Rendered whole files — the third ownership identity. A file agentstow
+//! Rendered whole files — the third ownership identity. A file agent-sync
 //! generated carries a Marker; one without a Marker was written by somebody
 //! else and is never touched.
 
@@ -34,7 +34,7 @@ fn a_commons_command_becomes_a_gemini_toml_file() {
     );
     assert!(toml.contains("Do the thing."), "got:\n{toml}");
     assert!(
-        toml.lines().next().unwrap_or("").contains("agentstow"),
+        toml.lines().next().unwrap_or("").contains("agent-sync"),
         "the Marker must be the first thing in the file:\n{toml}"
     );
 }

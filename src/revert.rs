@@ -1,4 +1,4 @@
-//! `revert <agent>` — deliberate offboarding: remove everything agentstow put
+//! `revert <agent>` — deliberate offboarding: remove everything agent-sync put
 //! into one target, and nothing else.
 //!
 //! It refuses while the target is still enabled, printing the exact
@@ -36,7 +36,7 @@ use crate::{EXIT_CLEAN, EXIT_ERROR};
 pub fn run(env: &Env, config: &Config, r: &mut Reporter, name: &str) -> i32 {
     // Refusals first, all before the lock: a refused revert holds nothing up.
     let Some(target) = target::find(config, name) else {
-        r.problem(format!("`{name}` is not an agent agentstow knows about"));
+        r.problem(format!("`{name}` is not an agent agent-sync knows about"));
         return EXIT_ERROR;
     };
 
@@ -69,7 +69,7 @@ pub fn run(env: &Env, config: &Config, r: &mut Reporter, name: &str) -> i32 {
 
     // Family by family, in the order sync writes them. A flipped agent's
     // legacy fan-out dir still holds links of ours to strip — "everything
-    // agentstow put into one target" includes what an earlier registry put.
+    // agent-sync put into one target" includes what an earlier registry put.
     for family in Family::ALL {
         let Some(dir) = target
             .fanout_dir(*family)
@@ -86,7 +86,7 @@ pub fn run(env: &Env, config: &Config, r: &mut Reporter, name: &str) -> i32 {
 
     if removed == 0 && r.problem_count() == 0 {
         r.line(format!(
-            "nothing of agentstow's in {name} — nothing to revert"
+            "nothing of agent-sync's in {name} — nothing to revert"
         ));
     } else if removed > 0 {
         r.blank();
@@ -228,7 +228,7 @@ fn revert_hooks(env: &Env, target: &Target, commons: &Commons, r: &mut Reporter)
 }
 
 /// Remove every symlink of ours directly inside one fan-out directory. The
-/// directory itself stays — agentstow never deletes an agent's directories.
+/// directory itself stays — agent-sync never deletes an agent's directories.
 fn remove_links(env: &Env, dir: &Path, commons: &Path, r: &mut Reporter) -> usize {
     let mut removed = 0usize;
     for path in entries_of(dir) {

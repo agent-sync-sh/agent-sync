@@ -127,11 +127,11 @@ pub fn is_exposed(_mode: u32) -> bool {
 }
 
 /// A temp name beside the target. The pid keeps unrelated processes apart; the
-/// global lock covers concurrent agentstow runs on this machine.
+/// global lock covers concurrent agent-sync runs on this machine.
 fn scratch_path(target: &Path) -> PathBuf {
     let name = target
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_else(|| "agentstow".into());
-    target.with_file_name(format!(".{name}.agentstow-{}", std::process::id()))
+        .unwrap_or_else(|| "agent-sync".into());
+    target.with_file_name(format!(".{name}.agent-sync-{}", std::process::id()))
 }

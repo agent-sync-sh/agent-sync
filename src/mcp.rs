@@ -130,7 +130,7 @@ impl Item {
             State::Foreign => "not in the Commons — left alone".into(),
             State::Excluded => "not allowlisted for this agent".into(),
             State::Stranded => {
-                "still here but no longer allowlisted — `agentstow mcp remove` clears it".into()
+                "still here but no longer allowlisted — `agent-sync mcp remove` clears it".into()
             }
             State::Disabled => "disabled in the Commons — will be removed".into(),
         }
@@ -207,7 +207,7 @@ fn survey_map(env: &Env, config: &Config, servers: &BTreeMap<String, Value>, sur
         let existing_servers = match read_existing(&path, root_key, format) {
             Ok(servers) => servers,
             Err(e) => {
-                // This is a file agentstow promised never to touch. One
+                // This is a file agent-sync promised never to touch. One
                 // unreadable config must not deny service to every other agent,
                 // nor blank out a read-only report.
                 survey.skipped.push(e.message);
@@ -310,9 +310,9 @@ fn survey_map(env: &Env, config: &Config, servers: &BTreeMap<String, Value>, sur
     }
 }
 
-/// Whether a Commons entry carries agentstow's `"disabled": true`.
+/// Whether a Commons entry carries agent-sync's `"disabled": true`.
 ///
-/// The key is agentstow's own state on the entry, not server config — the file
+/// The key is agent-sync's own state on the entry, not server config — the file
 /// is the interface, and `mcp enable|disable` are sugar over it. A hand-set
 /// value behaves identically. `read_commons` has already refused any
 /// non-boolean value, so absent and `false` are the only other shapes here.
@@ -478,7 +478,7 @@ fn read_commons(path: &Path) -> Result<BTreeMap<String, Value>, Error> {
                 message: format!("{}: server `{name}` must be an object", path.display()),
             });
         }
-        // `disabled` is agentstow's key, so its shape is agentstow's to
+        // `disabled` is agent-sync's key, so its shape is agent-sync's to
         // police: anything but a boolean has no meaning to fall back on.
         if let Some(flag) = spec.get(DISABLED)
             && !flag.is_boolean()
@@ -589,11 +589,11 @@ fn transport(spec: &Map<String, Value>) -> Transport {
 /// Keys every dialect handles itself, and so must not pass through verbatim.
 const TRANSLATED: &[&str] = &["type", "command", "args", "env", "url", "headers"];
 
-/// The one key on a Commons entry that is agentstow's rather than the
+/// The one key on a Commons entry that is agent-sync's rather than the
 /// server's. It marks the entry Disabled and must never reach a render.
 pub const DISABLED: &str = "disabled";
 
-/// Copy the keys agentstow does not model, so an agent-specific setting the
+/// Copy the keys agent-sync does not model, so an agent-specific setting the
 /// user wrote in the Commons still reaches its agent.
 fn passthrough(spec: &Map<String, Value>, out: &mut Map<String, Value>) {
     for (key, value) in spec {
@@ -905,7 +905,7 @@ pub struct Absorbed {
 
 /// Translate one agent's native entry back into the canonical shape.
 ///
-/// Keys agentstow models become canonical; everything else becomes a Tweak for
+/// Keys agent-sync models become canonical; everything else becomes a Tweak for
 /// the agent it came from, because a knob one agent understands is not
 /// automatically meaningful to the others.
 pub fn absorb(name: &str, entry: &Value, dialect: McpDialect) -> Result<Absorbed, Error> {
@@ -1083,7 +1083,7 @@ pub fn verify(
     Ok(differing_keys(Some(native), &rendered))
 }
 
-/// Remove one server from a Target's config. The only place agentstow deletes.
+/// Remove one server from a Target's config. The only place agent-sync deletes.
 ///
 /// Returns `None` when the server was not there, so the caller can stay quiet.
 pub fn strip(

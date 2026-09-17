@@ -24,7 +24,7 @@ fn reports_only_agents_whose_config_root_exists() {
 fn every_registry_agent_is_detected_by_creating_its_root() {
     // The registry is data: a row's `root` is the whole detection rule. If this
     // holds for every row, adding an agent really is a data-only change.
-    for agent in agentstow::registry::AGENTS {
+    for agent in agent_sync::registry::AGENTS {
         let f = Fixture::new();
         f.agent(agent.root);
 
@@ -81,7 +81,7 @@ fn does_not_create_roots_for_agents_that_are_not_installed() {
 
     f.run(&["doctor"]).assert_clean();
 
-    for agent in agentstow::registry::AGENTS {
+    for agent in agent_sync::registry::AGENTS {
         assert!(
             !f.path(agent.root).exists(),
             "doctor created a config root for {}",
@@ -146,7 +146,7 @@ fn missing_commons_is_a_problem_that_names_the_fix() {
 
     f.run(&["doctor"])
         .assert_code(1)
-        .assert_stderr_has("agentstow init");
+        .assert_stderr_has("agent-sync init");
 }
 
 #[test]
@@ -166,7 +166,7 @@ fn counts_the_agents_it_knows_about_but_did_not_find() {
     let f = Fixture::new();
     f.agent(".claude");
 
-    let total = agentstow::registry::AGENTS.len();
+    let total = agent_sync::registry::AGENTS.len();
 
     f.run(&["doctor"])
         .assert_clean()
@@ -187,7 +187,7 @@ fn init_creates_the_commons_and_nothing_else() {
         !f.commons().join("AGENTS.md").exists(),
         "an empty AGENTS.md would fan out as empty instructions"
     );
-    for agent in agentstow::registry::AGENTS {
+    for agent in agent_sync::registry::AGENTS {
         assert!(
             !f.path(agent.root).exists(),
             "init must not create agent roots"
@@ -201,7 +201,7 @@ fn the_advice_to_run_init_actually_works() {
     f.agent(".claude");
     f.run(&["sync"])
         .assert_code(1)
-        .assert_stderr_has("agentstow init");
+        .assert_stderr_has("agent-sync init");
 
     f.run(&["init"]).assert_clean();
 
@@ -268,7 +268,7 @@ fn the_sourced_suffix_and_section_vanish_when_there_are_none() {
 // --- The Commons as a shared commons (ADR-0004) -----------------------------
 
 #[test]
-fn names_commons_entries_that_are_not_agentstows() {
+fn names_commons_entries_that_are_not_ours() {
     // `~/.agents/` is a commons: opencode, oh-my-pi and hermes read it directly
     // and the `skills` CLI keeps its lock file there. A neighbour's entry is
     // named so the sharing is visible — never called an issue, never counted.
@@ -326,7 +326,7 @@ fn absent_protocol_surfaces_are_not_mentioned() {
 
 #[test]
 fn a_relocated_commons_warns_that_native_agents_will_not_see_it() {
-    // AGENTSTOW_HOME moves agentstow's Commons but cannot move the path a Native
+    // AGENT_SYNC_HOME moves agent-sync's Commons but cannot move the path a Native
     // agent hardcodes, so the two diverge in silence unless doctor says so.
     let f = Fixture::new();
     f.agent(".config/opencode");
@@ -336,8 +336,8 @@ fn a_relocated_commons_warns_that_native_agents_will_not_see_it() {
     f.run_with_vars(
         &["doctor"],
         &[
-            ("AGENTSTOW_TARGET_ROOT", f.home().display().to_string()),
-            ("AGENTSTOW_HOME", elsewhere.display().to_string()),
+            ("AGENT_SYNC_TARGET_ROOT", f.home().display().to_string()),
+            ("AGENT_SYNC_HOME", elsewhere.display().to_string()),
         ],
     )
     .assert_clean()
@@ -355,8 +355,8 @@ fn a_relocated_commons_is_silent_when_no_native_agent_is_installed() {
     f.run_with_vars(
         &["doctor"],
         &[
-            ("AGENTSTOW_TARGET_ROOT", f.home().display().to_string()),
-            ("AGENTSTOW_HOME", elsewhere.display().to_string()),
+            ("AGENT_SYNC_TARGET_ROOT", f.home().display().to_string()),
+            ("AGENT_SYNC_HOME", elsewhere.display().to_string()),
         ],
     )
     .assert_clean()
