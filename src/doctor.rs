@@ -382,3 +382,46 @@ fn is_writable(path: &Path) -> bool {
         Err(_) => false,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `is_writable` asks the operating system rather than reading permission
+    /// bits — `access(2)` on Unix, a create-and-remove probe on Windows. Both
+    /// answer the same three questions, so these tests run on every leg.
+    #[test]
+    fn a_writable_directory_says_yes() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(is_writable(dir.path()));
+    }
+
+    #[test]
+    fn a_missing_directory_says_no() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(
+            !is_writable(&dir.path().join("does-not-exist")),
+            "a path that is not there cannot be written to"
+        );
+    }
+
+    /// The Windows branch is the one deliberate exception to doctor being
+    /// read-only: it writes a probe file to find out. The exception is only
+    /// acceptable because the probe never outlives the call.
+    #[test]
+    fn the_probe_never_survives_the_call() {
+        let dir = tempfile::tempdir().unwrap();
+
+        assert!(is_writable(dir.path()));
+
+        let leftovers: Vec<_> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect();
+        assert!(
+            leftovers.is_empty(),
+            "doctor is read-only; the probe should be gone: {leftovers:?}"
+        );
+    }
+}

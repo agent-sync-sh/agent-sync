@@ -31,24 +31,34 @@ jobs:
           - name: linux
             os: ubuntu-latest
             scope: --all-targets
+            test_args: ""
             run_tests: true
           - name: macos
             os: macos-latest
             scope: --all-targets
+            test_args: ""
             run_tests: true
           - name: windows
             os: windows-latest
-            # The integration tests do not compile here, let alone run:
-            # tests/common/mod.rs reaches for std::os::unix::fs::symlink and
-            # std::os::unix::io::AsRawFd unguarded, so `cargo test` on Windows
-            # is a build failure, not a vacuous pass. Keeping them Unix-only is
-            # the standing decision (DECISIONS 2026-08-15), so this leg proves
-            # what Windows still can: that the library and binary compile and
-            # lint clean, which is where the real cfg(windows) branches live —
-            # link.rs, lock.rs, write.rs and doctor.rs each fork by platform,
-            # and none of that code is exercised by a Unix-only test run.
-            scope: --lib --bins
-            run_tests: false
+            # Executes the unit tests, which are the ones that cover every
+            # cfg(windows) branch — link.rs flavour and the 1314 rewrite,
+            # lock.rs share-mode contention, write.rs mode reporting, doctor.rs
+            # probe. Clippy still spans --all-targets, so the ported harness and
+            # all 17 integration files are compile- and lint-checked here even
+            # though they are not yet run.
+            #
+            # The integration suite is NOT green on Windows yet: 260 of 278 pass
+            # on a real Windows 11 box, and 18 fail across revert, the XDG
+            # config paths and the legacy-dir prune. Those are genuine
+            # behavioural gaps, not separator noise, so they are left visible as
+            # work rather than hidden behind #[ignore] — turning this leg on
+            # before they are fixed would only make main permanently red.
+            #
+            # Symlink creation on Windows needs Developer Mode or elevation;
+            # the runner is administrative, so it works there.
+            scope: --all-targets
+            test_args: --lib
+            run_tests: true
     steps:
       - uses: actions/checkout@v7
       - name: install the rust toolchain
@@ -63,12 +73,7 @@ jobs:
         run: cargo clippy --locked ${{ matrix.scope }} -- -D warnings
       - name: test
         if: ${{ matrix.run_tests }}
-        run: cargo test --locked
-      - name: the windows build links
-        if: ${{ !matrix.run_tests }}
-        # clippy analyses without codegen; this is what catches a Windows
-        # target that type-checks but fails to build or link.
-        run: cargo build --locked --lib --bins
+        run: cargo test --locked ${{ matrix.test_args }}
 
   fmt:
     name: rustfmt

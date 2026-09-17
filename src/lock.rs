@@ -109,3 +109,61 @@ fn try_exclusive(path: &Path) -> std::io::Result<Option<File>> {
         Err(e) => Err(e),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `try_exclusive` has one signature and two bodies — advisory `flock` on
+    /// Unix, an empty share mode on Windows — so the same two tests prove both.
+    /// On Unix a second `open` makes a new open file description, which is what
+    /// `flock` contends on; on Windows the holder's share mode of 0 is what
+    /// makes the second open fail. Different mechanisms, one contract.
+    #[test]
+    fn a_second_attempt_is_refused_while_the_first_holds() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("lock");
+
+        let held = try_exclusive(&path)
+            .unwrap()
+            .expect("first caller acquires");
+
+        let second = try_exclusive(&path).expect("a refusal is not an error");
+        assert!(
+            second.is_none(),
+            "a second holder must be refused, not blocked"
+        );
+
+        drop(held);
+    }
+
+    #[test]
+    fn the_lock_is_released_when_the_holder_drops() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("lock");
+
+        let held = try_exclusive(&path)
+            .unwrap()
+            .expect("first caller acquires");
+        drop(held);
+
+        assert!(
+            try_exclusive(&path).unwrap().is_some(),
+            "dropping the handle must release it — this is what makes a crashed \
+             run leave nothing to clean up"
+        );
+    }
+
+    /// The lock file is created on demand, so a first-ever run works.
+    #[test]
+    fn the_lock_file_is_created_if_it_is_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("lock");
+        assert!(!path.exists());
+
+        let held = try_exclusive(&path).unwrap().expect("acquires");
+        assert!(path.exists(), "the lock file should now exist");
+
+        drop(held);
+    }
+}

@@ -5,6 +5,7 @@
 mod common;
 
 use std::collections::BTreeSet;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
 use common::Fixture;
@@ -140,6 +141,9 @@ fn dry_run_prints_exactly_the_plan_the_real_run_executes() {
     );
 }
 
+/// Unix-only: the fault is injected by sealing a directory to 0o555, and
+/// Windows has no mode bit that denies a write to its owner.
+#[cfg(unix)]
 #[test]
 fn a_write_failure_reports_continues_and_a_rerun_converges() {
     // Root ignores permission bits, so this proof is meaningless as uid 0.
