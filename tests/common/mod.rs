@@ -13,6 +13,21 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
+/// Join a `/`-separated relative path onto `base`, one component at a time.
+///
+/// Every `rel` in this harness is written with forward slashes for
+/// readability. `Path::join` keeps them verbatim, which on Windows yields a
+/// mixed-separator path like `C:\home\repo/skills/research` — fine to open,
+/// but it never string-compares equal to what the code under test emits, since
+/// that has been through `normalize` and is all backslashes.
+fn join_rel(base: &Path, rel: &str) -> PathBuf {
+    let mut out = base.to_path_buf();
+    for part in rel.split('/').filter(|p| !p.is_empty()) {
+        out.push(part);
+    }
+    out
+}
+
 /// Create a symlink at `at` whose text is verbatim `target`.
 ///
 /// Mirrors `agent_sync::link::create_symlink` rather than calling it: several
@@ -167,7 +182,7 @@ impl Fixture {
 
     /// Home-relative path.
     pub fn path(&self, rel: &str) -> PathBuf {
-        self.home.join(rel)
+        join_rel(&self.home, rel)
     }
 
     /// Install an agent by creating its config root.
