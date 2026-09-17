@@ -272,11 +272,22 @@ impl Fixture {
     }
 
     /// The verbatim text of a home-relative symlink.
+    /// Link text with separators normalised to `/`.
+    ///
+    /// Tests assert on the *shape* of a link — `../../.agents/skills/research`
+    /// — not on which separator the platform spells it with. Windows stores
+    /// and returns backslashes, so without this every such assertion would
+    /// need a second, identical-looking literal.
     pub fn link_text(&self, rel: &str) -> String {
-        fs::read_link(self.home.join(rel))
+        let text = fs::read_link(self.home.join(rel))
             .unwrap_or_else(|e| panic!("{rel} is not a symlink: {e}"))
             .display()
-            .to_string()
+            .to_string();
+        if cfg!(windows) {
+            text.replace('\\', "/")
+        } else {
+            text
+        }
     }
 
     /// Whether a home-relative path is a symlink (without following it).
