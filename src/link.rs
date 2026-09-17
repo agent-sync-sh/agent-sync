@@ -23,31 +23,31 @@ use crate::commons::Entry;
 
 /// Resolve `.` and `..` textually, without touching the filesystem.
 pub fn normalize(path: &Path) -> PathBuf {
-    let mut root: Option<OsString> = None;
+    // Windows decomposes an absolute path into Prefix("C:") *and* RootDir,
+    // where Unix has RootDir alone. Both must accumulate: holding one slot and
+    // overwriting it keeps only RootDir and silently drops the drive, turning
+    // C:\dir\f into \dir\f -- which is drive-relative, so it resolves against
+    // whatever drive happens to be current and is only right by luck.
+    let mut root = PathBuf::new();
     let mut parts: Vec<OsString> = Vec::new();
 
     for component in path.components() {
         match component {
-            Component::RootDir | Component::Prefix(_) => {
-                root = Some(component.as_os_str().to_owned())
-            }
+            Component::Prefix(_) | Component::RootDir => root.push(component.as_os_str()),
             Component::CurDir => {}
             Component::ParentDir => match parts.last() {
                 Some(last) if last != ".." => {
                     parts.pop();
                 }
                 // Above an absolute root there is nothing to pop.
-                _ if root.is_some() => {}
+                _ if !root.as_os_str().is_empty() => {}
                 _ => parts.push("..".into()),
             },
             Component::Normal(part) => parts.push(part.to_owned()),
         }
     }
 
-    let mut out = PathBuf::new();
-    if let Some(root) = root {
-        out.push(root);
-    }
+    let mut out = root;
     for part in parts {
         out.push(part);
     }
@@ -444,10 +444,10 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn normalize_keeps_the_drive_letter() {
-        let out = normalize(Path::new(r"C:\\Users\\x\\file.json"));
+        let out = normalize(Path::new(r"C:\Users\x\file.json"));
         assert_eq!(
             out,
-            PathBuf::from(r"C:\\Users\\x\\file.json"),
+            PathBuf::from(r"C:\Users\x\file.json"),
             "the drive prefix must survive normalisation"
         );
     }
@@ -455,8 +455,8 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn resolve_link_keeps_the_drive_letter() {
-        let out = resolve_link(Path::new(r"C:\\dir\\link"), Path::new("real.json"));
-        assert_eq!(out, PathBuf::from(r"C:\\dir\\real.json"));
+        let out = resolve_link(Path::new(r"C:\dir\link"), Path::new("real.json"));
+        assert_eq!(out, PathBuf::from(r"C:\dir\real.json"));
     }
 
     #[test]
