@@ -33,10 +33,29 @@ pub enum Skills {
 pub enum Instructions {
     /// Symlink the Commons `AGENTS.md` to this home-relative path.
     Symlink(&'static str),
-    /// Ensure an import line inside this home-relative user-owned file.
+    /// Ensure an import line inside this home-relative user-owned file. Only
+    /// where the agent is *measured* to expand one: an unparsed `@path` leaves
+    /// the agent with no instructions and no error (ADR-0008).
     ImportLine(&'static str),
     /// Drop an `AGENTS.md` symlink into this home-relative rules directory.
     RulesDirLink(&'static str),
+    /// Ensure one entry naming the Commons `AGENTS.md` in the list of
+    /// instruction files this agent's own config declares — the Include-entry
+    /// mechanic (ADR-0008). Chosen where a symlink at the agent's instructions
+    /// path is unsafe because another tool rewrites that file through the link.
+    IncludeEntry {
+        /// Home-relative JSON config file.
+        file: &'static str,
+        /// Dot-separated path to the array inside it.
+        key: &'static str,
+        /// An entry that must stay first when the array is created — Gemini's
+        /// element 0 is also its memory write target, and that must never be
+        /// the Commons. `None` when the list has no such slot.
+        keep_first: Option<&'static str>,
+        /// The path a pre-ADR-0008 registry symlinked here, pruned by `sync`
+        /// when it still resolves into the Commons. Never a real file.
+        legacy_link: Option<&'static str>,
+    },
     /// No user-scope instructions surface.
     None,
 }
@@ -202,11 +221,12 @@ fn describe_skills(c: Skills) -> String {
     }
 }
 
-fn describe_instructions(c: Instructions) -> String {
+pub(crate) fn describe_instructions(c: Instructions) -> String {
     match c {
         Instructions::Symlink(p) => format!("symlink → {p}"),
         Instructions::ImportLine(p) => format!("import-line → {p}"),
         Instructions::RulesDirLink(d) => format!("rules-dir link → {d}"),
+        Instructions::IncludeEntry { file, key, .. } => format!("include-entry → {file} {key}"),
         Instructions::None => "none".into(),
     }
 }
@@ -277,6 +297,11 @@ pub const AGENTS: &[Agent] = &[
         skills: Skills::Native {
             legacy: Some(".codex/skills"),
         },
+        // A symlink, and deliberately not an import line: Codex 0.155.0 passes
+        // an `@path` line through to the prompt verbatim (`codex debug
+        // prompt-input`, 2026-09-18; upstream openai/codex#6038 and #17401).
+        // The link is safe here because claude-mem's Codex writer only strips
+        // its own tags and never writes the file. Evidence: ADR-0008.
         instructions: Instructions::Symlink(".codex/AGENTS.md"),
         mcp: Mcp::KeyMerge {
             file: ".codex/config.toml",
@@ -298,7 +323,16 @@ pub const AGENTS: &[Agent] = &[
         // contract other agents hardcode (ADR-0004), not agent-sync's private
         // choice, so fan-out here would only create duplicate-name warnings.
         skills: Skills::Native { legacy: None },
-        instructions: Instructions::Symlink(".config/opencode/AGENTS.md"),
+        // Not a symlink: claude-mem rewrites ~/.config/opencode/AGENTS.md on
+        // every session with a plain write, which follows a link straight into
+        // the Commons. opencode has no `@` import either; its own route is the
+        // `instructions` list in opencode.json (ADR-0008).
+        instructions: Instructions::IncludeEntry {
+            file: ".config/opencode/opencode.json",
+            key: "instructions",
+            keep_first: None,
+            legacy_link: Some(".config/opencode/AGENTS.md"),
+        },
         mcp: Mcp::KeyMerge {
             file: ".config/opencode/opencode.json",
             root_key: "mcp",
@@ -371,7 +405,17 @@ pub const AGENTS: &[Agent] = &[
         // verified 2026-08-16). agent-sync never fanned skills out to gemini,
         // so there is no legacy dir to clean.
         skills: Skills::Native { legacy: None },
-        instructions: Instructions::Symlink(".gemini/GEMINI.md"),
+        // Not a symlink: claude-mem writes ~/.gemini/GEMINI.md through a link
+        // into the Commons. Gemini refuses a home-level `@` import as a path
+        // traversal, but loads every name in `context.fileName`, each joined
+        // under ~/.gemini — so `../.agents/AGENTS.md` is the Commons. GEMINI.md
+        // stays first: element 0 is where Gemini writes memories (ADR-0008).
+        instructions: Instructions::IncludeEntry {
+            file: ".gemini/settings.json",
+            key: "context.fileName",
+            keep_first: Some("GEMINI.md"),
+            legacy_link: Some(".gemini/GEMINI.md"),
+        },
         mcp: Mcp::KeyMerge {
             file: ".gemini/settings.json",
             root_key: "mcpServers",

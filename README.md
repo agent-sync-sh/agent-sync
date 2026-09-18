@@ -20,7 +20,7 @@ There is no state file. There never will be. The filesystem is the state.
 ├── skills/<name>/       fanned out as symlinks
 ├── commands/<name>.md
 ├── agents/<name>.md
-├── AGENTS.md            symlink, import-line, or rules-dir link per agent
+├── AGENTS.md            symlink, import-line, include-entry, or rules-dir link per agent
 ├── mcp.json             rendered into each agent's native dialect
 └── hooks/<Event>.toml   merged by command string
 ```

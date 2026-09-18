@@ -2055,3 +2055,54 @@ One target is genuinely never executed anywhere: `aarch64-pc-windows-msvc`, with
 cannot run it. `scripts/e2e-windows.ps1` picks its asset from
 `PROCESSOR_ARCHITECTURE`, so running it on an ARM Windows box would close that
 too; we do not have one.
+
+## 2026-09-18 — Instructions mechanics for codex, opencode and gemini are chosen by measured behavior; opencode and gemini move to Include-entry
+
+The fleet asked for the Claude import line on codex, opencode and gemini after the
+claude-mem write-through hazard was found: a symlink at an agent's instructions
+path let another tool's `writeFileSync` land in the Commons. The import line was
+not applied anywhere, because none of the three consumes one — Codex 0.155.0
+passes `@path` through verbatim, opencode 1.18.31 has no `@` syntax, and the
+deployed Gemini 0.46.0 refuses every home-level import as a path traversal. An
+unparsed import is a silent failure: no instructions, no error.
+
+Decided (ADR-0008 holds the evidence table):
+
+- **codex** keeps `Symlink(".codex/AGENTS.md")`; claude-mem's Codex writer is
+  strip-only, so the link is safe, and it is Codex's only working route. Only the
+  registry comment changes, now citing the probe and openai/codex#6038, #17401.
+- **opencode** and **gemini** take a new **Include-entry** mechanic: one entry
+  naming the Commons `AGENTS.md` in the agent's own list of instruction files —
+  opencode's `instructions` array, Gemini's `context.fileName` array. One
+  registry variant carrying file, key path and a default sibling to keep
+  (`GEMINI.md` first, because Gemini's element 0 is its memory write target).
+- Entry text is the existing `~`-relative reference for opencode and the
+  relative path from the settings directory for Gemini. Presence is tested by
+  resolving, so the absolute paths the fleet already carries count as present and
+  are never rewritten. Our entry is appended, never placed first; a user array
+  with the Commons at index 0 is a conflict, not a reorder.
+- `revert` removes our element and drops the key (and an emptied parent) when
+  nothing but the default remains. Absent file: create it with our entry.
+  Malformed JSON or a wrongly-typed key: conflict naming the file, nothing
+  written, other families proceed.
+- `sync` removes a legacy Commons symlink at the two old paths and leaves any
+  real file alone; a real file there is no longer a conflict.
+- `status` reuses the `imported`/`import` labels with an "included via" note; no
+  new JSON states. `doctor` gains one warning: an import line naming the Commons
+  in a file whose agent is not Import-line.
+- Rejected: import line everywhere (fails silently), a symlink inside `~/.gemini`
+  (dies on gemini-cli v0.51.0's realpath fix, and five Homebrew hosts cross that
+  boundary together), `includeDirectories` (grants the model write access to the
+  Commons), boundary markers plus an import (two edits, same expiry), and
+  agentsync's rendered copy (ownership tracking ADR-0001 refused).
+
+Fleet state at decision time: `~/.config/opencode/AGENTS.md` and
+`~/.gemini/GEMINI.md` are real claude-mem placeholders on all hosts,
+`opencode.json` already carries an absolute `instructions` entry, and `agent-sync
+status` reports both paths as conflicts — the correct state until this ships.
+The macbook-provision session (Q139 in that repo) holds the fleet side and waits
+on the registry change before planning the reinstall.
+
+Glossary: `CONTEXT.md` gains **Include-entry** and narrows **Import-line**.
+Decided by the user through a `/grill-with-docs` interview, Q1–Q16 all on the
+recommended option.

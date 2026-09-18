@@ -16,7 +16,7 @@ use crate::env::Env;
 use crate::family::Family;
 use crate::link;
 use crate::registry;
-use crate::registry::Skills;
+use crate::registry::{Instructions, Skills};
 use crate::report::Reporter;
 use crate::target;
 
@@ -53,8 +53,53 @@ pub fn run(env: &Env, config: &Config, r: &mut Reporter) -> i32 {
 
     report_commons_override(env, config, r);
     report_agents(env, config, r);
+    report_inert_imports(env, config, r);
 
     r.verdict()
+}
+
+/// An `@` import line naming the Commons in a file whose agent does not expand
+/// one is silent: the agent loads no instructions and reports no error, which
+/// is indistinguishable from working. Only Claude is measured to honor the
+/// line (ADR-0008), so the line is named wherever else it turns up.
+fn report_inert_imports(env: &Env, config: &Config, r: &mut Reporter) {
+    let reference = crate::commons::INSTRUCTIONS.to_string();
+    for target in target::resolve(env, config) {
+        let Some(agent) = target.agent else {
+            continue;
+        };
+        let file = match agent.instructions {
+            Instructions::Symlink(rel) => env.in_home(rel),
+            Instructions::RulesDirLink(dir) => env.in_home(dir).join(&reference),
+            Instructions::IncludeEntry { legacy_link, .. } => match legacy_link {
+                Some(rel) => env.in_home(rel),
+                None => continue,
+            },
+            // The one agent that expands the line; nothing to warn about.
+            Instructions::ImportLine(_) | Instructions::None => continue,
+        };
+        // A symlink into the Commons *is* the Commons file: any `@` line in it
+        // is the user's own business, not an inert import.
+        if std::fs::symlink_metadata(&file).is_ok_and(|m| m.file_type().is_symlink()) {
+            continue;
+        }
+        let Ok(body) = std::fs::read_to_string(&file) else {
+            continue;
+        };
+        let inert = body.lines().any(|l| {
+            let l = l.trim();
+            l.strip_prefix('@')
+                .is_some_and(|rest| rest.trim().ends_with(&reference) && rest.contains(".agents"))
+        });
+        if inert {
+            r.warn(format!(
+                "{} holds an `@` import of the Commons, but {} does not expand import lines — it is silently ignored; the {} route is what reaches this agent",
+                file.display(),
+                agent.name,
+                registry::describe_instructions(agent.instructions)
+            ));
+        }
+    }
 }
 
 /// Name one directory the tool no longer reads, and say what to do with it.

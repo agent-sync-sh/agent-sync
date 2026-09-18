@@ -127,6 +127,27 @@ fn revert_instructions(env: &Env, target: &Target, commons: &Path, r: &mut Repor
                 }
             }
         }
+        Instructions::IncludeEntry {
+            file,
+            key,
+            keep_first,
+            legacy_link,
+        } => {
+            let mut removed = 0;
+            if let Some(rel) = legacy_link {
+                removed += remove_our_link(env, &env.in_home(rel), commons, r);
+            }
+            let path = env.in_home(file);
+            match instructions::remove_include_entry(env, &path, key, keep_first) {
+                Ok(true) => {
+                    r.line(format!("removed the {key} entry from {file}"));
+                    removed += 1;
+                }
+                Ok(false) => {}
+                Err(e) => r.problem(format!("cannot rewrite {}: {e}", path.display())),
+            }
+            removed
+        }
         Instructions::None => 0,
     }
 }

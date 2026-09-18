@@ -69,7 +69,11 @@ A per-agent addition merged into one agent's rendering of a server (e.g. Codex's
 _Avoid_: override, extra, extension
 
 **Import-line**:
-The instructions mechanism for agents whose file must stay user-owned: ensure one additive, idempotent import line exists (Claude's `@~/.agents/AGENTS.md` in `CLAUDE.md`). The sole sanctioned edit to a user file outside MCP rendering.
+The instructions mechanism for agents whose prose file must stay user-owned *and* whose parser honors an import: ensure one additive, idempotent import line exists (Claude's `@~/.agents/AGENTS.md` in `CLAUDE.md`). The sole sanctioned edit to a user's prose file. Assigned only where the agent is measured to consume the line — an unparsed import leaves the agent with no instructions and no error.
+
+**Include-entry**:
+The instructions mechanism for agents whose config lists the instruction files to load: ensure one entry naming the Commons `AGENTS.md` exists in that list (opencode's `instructions` array; Gemini's `context.fileName` array). Owned by element identity like a hook — an entry that resolves to the Commons file is ours in whatever spelling it was written, and every other entry belongs to whoever put it there. Always appended, never placed first: for Gemini the first element is also where the agent writes its own memories, and that must never be the Commons. Chosen where a symlink at the agent's own instructions path is unsafe because another tool rewrites that file through the link.
+_Avoid_: import-line, config include, instructions key
 
 **Rules-dir link**:
 The instructions mechanism for agents that glob a rules directory: drop a symlink to the Commons `AGENTS.md` into it (Roo's `~/.roo/rules/`).

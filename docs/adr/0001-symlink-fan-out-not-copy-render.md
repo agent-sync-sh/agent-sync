@@ -12,3 +12,5 @@ agentsync (the closest prior art) copies + renders + per-key-merges configs into
 ---
 
 *Amended 2026-08-16: "the Store" is renamed **the Commons** (DECISIONS.md 2026-08-16); wording above is preserved as written. Windows shipped in 1.2.0.*
+
+*Amended 2026-09-18: the "sole sanctioned edit" is now the sole sanctioned edit to a user's **prose** file. opencode and gemini take an **Include-entry** in their own config's list of instruction files instead of a symlink, because another tool rewrites their instructions file through a link (ADR-0008); wording above is preserved as written.*

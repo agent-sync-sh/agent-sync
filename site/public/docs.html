@@ -197,11 +197,17 @@ adopted serena from claude
         Cursor still reads its old fan-out directory, <code>sync</code> prunes our
         now-duplicate links from it.</dd>
         <dt>Instructions</dt>
-        <dd>Three mechanisms, because agents differ in kind. A plain <em>symlink</em> where
-        the whole file can be ours (Codex, opencode, pi, oh-my-pi, Gemini CLI, Windsurf).
+        <dd>Four mechanisms, because agents differ in kind. A plain <em>symlink</em> where
+        the whole file can be ours (Codex, pi, oh-my-pi, Windsurf).
         An <em>import line</em>
         for Claude, whose <code>CLAUDE.md</code> holds your own content, so agent-sync only
-        ensures <code>@~/.agents/AGENTS.md</code> is present — additive and idempotent. A
+        ensures <code>@~/.agents/AGENTS.md</code> is present — additive and idempotent, and
+        assigned only where the agent is measured to expand it. An <em>include-entry</em>
+        for opencode and Gemini CLI, whose own config lists the instruction files they
+        load: one element naming the Commons file in opencode's <code>instructions</code>
+        array or Gemini's <code>context.fileName</code> array, appended and never placed
+        first. Their instructions files are rewritten by another tool, so a symlink there
+        would carry its writes into the Commons. A
         <em>rules-dir link</em> for Roo, which globs a directory.</dd>
         <dt>MCP servers</dt>
         <dd>Rendered into each agent's dialect and key-merged. See below.</dd>

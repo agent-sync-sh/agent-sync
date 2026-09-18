@@ -395,7 +395,7 @@ fn by_file<'i, T: InFile>(items: &[&'i T]) -> Vec<(&'i Path, Vec<&'i T>)> {
     grouped
 }
 
-/// The instructions family: one Commons file, three per-agent mechanisms.
+/// The instructions family: one Commons file, four per-agent mechanisms.
 fn sync_instructions(items: &[instructions::Item], r: &mut Reporter, dry_run: bool) -> usize {
     let noteworthy: Vec<&instructions::Item> = items
         .iter()

@@ -65,8 +65,8 @@ fn the_report_offers_the_mcp_adoption_command() {
 fn the_report_names_a_conflict_and_its_remedy() {
     let f = populated();
     f.commons_file("AGENTS.md", "# shared\n");
-    // Another tool already owns opencode's instructions file.
-    f.file(".config/opencode/AGENTS.md", "<claude-mem-context>\n");
+    // Another tool already owns codex's instructions file.
+    f.file(".codex/AGENTS.md", "<claude-mem-context>\n");
 
     let out = f.run(&["init"]);
 
