@@ -2199,6 +2199,17 @@ the release exists.
 
 Decided-by: advisor (cut 1.1.0 now; minor, not patch).
 
+*Note, 2026-09-18, later the same day:* runbook step 3 is now done. On the
+user's instruction it was run from this session rather than by the fleet-side
+peer: the committed `scripts/e2e-windows.ps1` (26375ba, sha256 `c140f6d0…`
+verified on both ends) copied into `windows-zx8`'s `%TEMP%` and run over SSH in
+an elevated PowerShell 5.1 session with `-Tag agent-sync-v1.1.0`. The shipped
+win32-x64 zip fetched anonymously, matched `SHA256SUMS.txt`, and passed all 40
+assertions including the three `[1.0.1 fix]` ones; the real `~/.claude` and
+`~/.agents` fingerprints were unchanged, and the script and its log were deleted
+from `%TEMP%` afterwards. The 1.1.0 Windows artifact is clear for the Windows
+hosts.
+
 ## 2026-09-18 — The advisor loop ended on the advisor's own acceptance of "stop the advisor"
 
 With the release verified and only the peer's Windows e2e result outstanding,
