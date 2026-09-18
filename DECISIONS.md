@@ -2106,3 +2106,43 @@ on the registry change before planning the reinstall.
 Glossary: `CONTEXT.md` gains **Include-entry** and narrows **Import-line**.
 Decided by the user through a `/grill-with-docs` interview, Q1–Q16 all on the
 recommended option. Commit b77856e.
+
+## 2026-09-18 — Correction: `legacy` is a new status JSON state
+
+The Include-entry entry above says `status` adds "no new JSON states". That is
+false as committed: `State::LegacyLink` labels itself `legacy`, and `status
+--json` emits `state.label()` for every instructions item, so a Commons symlink
+still sitting at `~/.config/opencode/AGENTS.md` or `~/.gemini/GEMINI.md`
+reports as `legacy` until the next `sync` removes it. The label stays: it is
+the one state that is neither pending nor wrong, and no existing label says
+"ours, and about to go". The wording above is preserved as written.
+
+## 2026-09-18 — Review pass of b77856e before anyone pushes it
+
+The advisor chose a review over a push or a release, and seeded it with five
+findings from the diff. Each was checked against the code; three were defects,
+one was the false journal claim corrected above, and one was a duplicate
+helper. Landed as a follow-up commit, never an amend, because b77856e is cited
+by hash in the journal, the project memory and the fleet-side record.
+
+- **Empty `context.fileName: []` put the Commons at element 0.** The absent-key
+  arm seeded `GEMINI.md` first; an existing empty list skipped it, so the
+  appended entry landed at index 0 — Gemini's memory write target, the exact
+  hazard ADR-0008 forbids — and the next survey reported a conflict agent-sync
+  had created. An empty list now seeds like an absent key.
+- **`revert` dropped a non-string survivor.** `kept[0].as_str() == keep_first`
+  is `None == None` for opencode, so a lone off-schema element made the whole
+  key vanish. The comparison now requires a `keep_first`.
+- **A wrongly-typed intermediate was a write failure, not a conflict.**
+  `{"context": "x"}` surveyed as pending, then failed in `apply` as "cannot
+  write". The survey now walks the key path and reports the blocking segment
+  as a Conflict, nothing written, exit 0 — the same shape as malformed JSON.
+- **One JSON reader.** `instructions.rs` carried a byte-identical copy of
+  `hooks::read_document`; it now calls it.
+
+Push, tag and version bump remain the user's; the advisor will revisit the push
+once this is clean. Three regression tests, one per defect.
+
+Decided-by: advisor (review before push; follow-up commit, not amend; push and
+release stay with the user). The Conflict-not-write-failure shape and keeping
+the `legacy` label were the worker's calls within that.

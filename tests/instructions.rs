@@ -359,6 +359,68 @@ fn malformed_json_is_a_conflict_and_the_file_is_left_alone() {
 }
 
 #[test]
+fn an_empty_gemini_list_is_seeded_like_an_absent_key() {
+    // `[]` is not the absent-key case, but appending to it would put the
+    // Commons at element 0 — Gemini's memory write target — and the next
+    // survey would then report a conflict agent-sync itself created.
+    let f = include_machine();
+    f.file(
+        ".gemini/settings.json",
+        "{\"context\": {\"fileName\": []}}\n",
+    );
+
+    f.run(&["sync"]).assert_clean();
+
+    assert_eq!(
+        f.json(".gemini/settings.json")["context"]["fileName"],
+        serde_json::json!(["GEMINI.md", "../.agents/AGENTS.md"])
+    );
+    f.run(&["status"])
+        .assert_code(0)
+        .assert_stdout_lacks("conflict");
+}
+
+#[test]
+fn revert_keeps_a_non_string_survivor_instead_of_dropping_the_key() {
+    // Off-schema, but the failure mode is discarding the user's element.
+    let f = include_machine();
+    f.file(
+        ".config/opencode/opencode.json",
+        "{\"instructions\": [42, \"~/.agents/AGENTS.md\"]}\n",
+    );
+    f.file(
+        ".config/agent-sync/agent-sync.toml",
+        "[targets]\nopencode = false\n",
+    );
+
+    f.run(&["revert", "opencode"]).assert_clean();
+
+    assert_eq!(
+        f.json(".config/opencode/opencode.json"),
+        serde_json::json!({"instructions": [42]})
+    );
+}
+
+#[test]
+fn a_wrongly_typed_intermediate_is_a_conflict_not_a_write_failure() {
+    // `context` is a string, so `context.fileName` can never be reached by
+    // creating what is missing: the survey says so, and nothing is written.
+    let f = include_machine();
+    f.file(".gemini/settings.json", "{\"context\": \"x\"}\n");
+
+    let out = f.run(&["sync"]);
+
+    out.assert_clean()
+        .assert_stdout_has("`context` is not an object")
+        .assert_stderr_lacks("cannot write");
+    assert_eq!(
+        f.contents(".gemini/settings.json"),
+        "{\"context\": \"x\"}\n"
+    );
+    f.run(&["status"]).assert_stdout_has("conflict");
+}
+
+#[test]
 fn a_legacy_symlink_of_ours_is_removed_and_a_real_file_is_left_alone() {
     let f = include_machine();
     // What a pre-ADR-0008 registry put at opencode's path…

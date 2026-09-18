@@ -298,6 +298,15 @@ fn include_item(
         Ok(document) => document,
         Err(reason) => return item(State::Conflict, Some(reason)),
     };
+    if let Some(part) = blocked_segment(&document, key) {
+        return item(
+            State::Conflict,
+            Some(format!(
+                "{}: `{part}` is not an object — left untouched",
+                path.display()
+            )),
+        );
+    }
     let list = match lookup(&document, key) {
         None => return item(State::ImportMissing, None),
         Some(Value::Array(list)) => list.clone(),
@@ -369,25 +378,28 @@ fn resolve_entry(text: &str, base: &Path, env: &Env) -> PathBuf {
 /// A JSON document read the way the key-merge families read theirs: an
 /// absent or blank file is an empty object; anything unparsable is a reason
 /// to leave the file alone.
+/// Blank or absent reads as an empty object; invalid JSON names the spot.
 fn read_document(path: &Path) -> Result<Value, String> {
-    match fs::read_to_string(path) {
-        Ok(text) if text.trim().is_empty() => Ok(Value::Object(Map::new())),
-        Ok(text) => serde_json::from_str(&text).map_err(|e| {
-            format!(
-                "{} is not valid JSON (line {}, column {}) — left untouched",
-                path.display(),
-                e.line(),
-                e.column()
-            )
-        }),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Value::Object(Map::new())),
-        Err(e) => Err(format!("cannot read {}: {e}", path.display())),
-    }
+    crate::hooks::read_document(path).map_err(|e| e.message)
 }
 
 fn lookup<'a>(document: &'a Value, key: &str) -> Option<&'a Value> {
     key.split('.')
         .try_fold(document, |node, part| node.get(part))
+}
+
+/// The first intermediate segment of `key` that exists but is not an object,
+/// so the key can never be reached by creating what is missing.
+fn blocked_segment<'k>(document: &Value, key: &'k str) -> Option<&'k str> {
+    let parts: Vec<&str> = key.split('.').collect();
+    let mut node = document;
+    for part in &parts[..parts.len() - 1] {
+        node = node.get(part)?;
+        if !node.is_object() {
+            return Some(part);
+        }
+    }
+    None
 }
 
 /// The object that holds the last segment of `key`, created on the way down.
@@ -415,10 +427,7 @@ fn add_entry(path: &Path, include: &Include) -> std::io::Result<()> {
     let (parent, last) = lookup_parent_mut(&mut document, include.key)
         .ok_or_else(|| std::io::Error::other(format!("`{}` is not reachable", include.key)))?;
     let mut list = match parent.remove(&last) {
-        None => match include.keep_first {
-            Some(first) => vec![Value::String(first.to_string())],
-            None => Vec::new(),
-        },
+        None => Vec::new(),
         Some(Value::Array(list)) => list,
         Some(Value::String(one)) => vec![Value::String(one)],
         Some(other) => {
@@ -428,6 +437,15 @@ fn add_entry(path: &Path, include: &Include) -> std::io::Result<()> {
             )));
         }
     };
+    // An empty list is as good as an absent key: appending to it would put
+    // the Commons at element 0, the agent's own write target.
+    if list.is_empty() {
+        list.extend(
+            include
+                .keep_first
+                .map(|first| Value::String(first.to_string())),
+        );
+    }
     list.push(Value::String(include.entry.clone()));
     parent.insert(last, Value::Array(list));
     write_document(path, &document)
@@ -468,7 +486,8 @@ pub fn remove_include_entry(
         return Ok(false);
     }
 
-    let only_default = kept.is_empty() || (kept.len() == 1 && kept[0].as_str() == keep_first);
+    let only_default = kept.is_empty()
+        || (kept.len() == 1 && keep_first.is_some_and(|k| kept[0].as_str() == Some(k)));
     let parts: Vec<&str> = key.split('.').collect();
     if only_default {
         remove_key(&mut document, &parts);

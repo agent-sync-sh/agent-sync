@@ -693,7 +693,7 @@ fn read_agent(path: &Path, root_key: &str) -> Result<Map<String, Value>, Error> 
     }
 }
 
-fn read_document(path: &Path) -> Result<Value, Error> {
+pub(crate) fn read_document(path: &Path) -> Result<Value, Error> {
     match std::fs::read_to_string(path) {
         Ok(text) if text.trim().is_empty() => Ok(Value::Object(Map::new())),
         Ok(text) => serde_json::from_str(&text).map_err(|e| Error {
