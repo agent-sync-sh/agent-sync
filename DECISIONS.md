@@ -2198,3 +2198,16 @@ The fleet reinstall belongs to the macbook-provision session, which was told
 the release exists.
 
 Decided-by: advisor (cut 1.1.0 now; minor, not patch).
+
+## 2026-09-18 — The advisor loop ended on the advisor's own acceptance of "stop the advisor"
+
+With the release verified and only the peer's Windows e2e result outstanding,
+the advisor accepted Claude Code's ghost suggestion "stop the advisor" in the
+worker's input box (its pane says so: "doesn't trigger a money/data-loss
+concern, so I'll accept it"). The worker's composer showed `api_client`, the
+advisor's prompt held no user words, so this was not the user's say-so; the
+worker stopped it anyway, the stop being reversible by the user's next
+`/herdr-advisor` and the loop's work complete. The Windows e2e note is still
+appended to the 1.1.0 entry when the peer reports.
+
+Decided-by: advisor
