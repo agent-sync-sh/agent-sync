@@ -142,7 +142,9 @@ publish, crates.io by the same run reaching `Uploading agent-sync-sh v1.0.1`.
 
 **The tarball lags the metadata, and that is not a failure.** On 1.0.1 the
 packument listed `1.0.1` and `npm install` still failed with a 404 on
-`/agent-sync-sh/-/agent-sync-sh-1.0.1.tgz` for about a minute. Publish had
+`/agent-sync-sh/-/agent-sync-sh-1.0.1.tgz` for about a minute, and 1.1.0's
+launcher tarball lagged by about five minutes while all six platform packages
+were already fetchable. Publish had
 already succeeded. Wait on the artifact rather than the packument, and never
 republish:
 

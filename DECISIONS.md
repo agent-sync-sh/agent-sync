@@ -2166,3 +2166,35 @@ handoff, were the worker's framing, not a rule the user set; the advisor's own
 wording above is preserved as written.
 
 Decided-by: advisor
+
+## 2026-09-18 — Release 1.1.0 ships the Include-entry mechanic
+
+Cut on the advisor's decision under herdr-advisor Q45, which puts `go` on
+irreversible steps with the advisor; a minor bump rather than 1.0.2 because a
+new mechanic changes fleet-visible files. Steps as `docs/release-runbook.md`
+lists them: `Cargo.toml` to 1.1.0 (6eb4ea0), `verify-packaging.sh` passed
+locally with the binary reporting 1.1.0, signed annotated tag
+`agent-sync-v1.1.0`, release run 35337661443 green on all sixteen jobs.
+
+Verified from this machine without touching its installed agent-sync or its
+Homebrew state:
+
+- GitHub Release: not a draft, six binaries plus `SHA256SUMS.txt`, anonymous
+  download of the darwin-arm64 tarball answers 200.
+- crates.io: the index lists 1.1.0, not yanked.
+- npm: all six `@agent-sync-sh/*` packages at 1.1.0 with provenance
+  attestations; the `agent-sync-sh` launcher's packument at 1.1.0 while its
+  tarball answered 404 for about five minutes (1.0.1: about one), then a clean
+  directory `npm install agent-sync-sh@1.1.0` ran `agent-sync 1.1.0`. The
+  runbook's lag paragraph now records the longer wait.
+- PyPI: seven wheels, six platforms plus `py3-none-any`.
+- Homebrew: the `tap` job committed the regenerated formula as 260903e on main;
+  its darwin-arm64 sha256 equals both the live asset and `SHA256SUMS.txt`.
+
+Not done: runbook step 3, the Windows e2e script, needs a real Windows box and
+`windows-zx8` is a fleet host, so it was skipped; `brew fetch` was not run here
+for the same reason, the formula being checked against the live asset instead.
+The fleet reinstall belongs to the macbook-provision session, which was told
+the release exists.
+
+Decided-by: advisor (cut 1.1.0 now; minor, not patch).
