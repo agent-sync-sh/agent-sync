@@ -2210,6 +2210,24 @@ assertions including the three `[1.0.1 fix]` ones; the real `~/.claude` and
 from `%TEMP%` afterwards. The 1.1.0 Windows artifact is clear for the Windows
 hosts.
 
+*Note, 2026-09-18, later still:* the fleet reinstall was done from this session
+on the user's instruction, superseding the earlier rule that this session
+touches no fleet host; the macbook-provision session was told first so it would
+not act in parallel. Seven macOS hosts, all on brew-installed 1.0.1 beforehand
+with the two claude-mem conflicts and no `context.fileName`: mac-mini-m2 as the
+canary, then macbook-air, mac-mini-2018 (Intel, `/usr/local`), mac-studio-m3,
+archs-mac-mini, dev-server-frank-lume and macbook-pro-nickel in parallel, each
+through a login shell. On every host: `brew update`, `brew upgrade agent-sync`
+to 1.1.0, `status` reporting only the pending Gemini entry (exit 2), `sync`
+adding it, `status` exiting 0 with both opencode and gemini `imported —
+included via` their config file, `context.fileName` reading
+`["GEMINI.md", "../.agents/AGENTS.md"]`, the absolute opencode entry left as it
+was, and the md5 of both claude-mem files unchanged. The two Linux boxes
+(dev-server-frank, supermicro) carry no agent-sync and are outside the fleet.
+One tooling note: the first canary run, fed to `zsh -l -s` on stdin, stopped
+silently after `brew upgrade`; a script file with stdin from `/dev/null`
+completed, and that is the form the six remotes used.
+
 ## 2026-09-18 — The advisor loop ended on the advisor's own acceptance of "stop the advisor"
 
 With the release verified and only the peer's Windows e2e result outstanding,
