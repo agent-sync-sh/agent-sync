@@ -2146,3 +2146,23 @@ once this is clean. Three regression tests, one per defect.
 Decided-by: advisor (review before push; follow-up commit, not amend; push and
 release stay with the user). The Conflict-not-write-failure shape and keeping
 the `legacy` label were the worker's calls within that.
+
+## 2026-09-18 — Correction: the push was the advisor's decision, not the user's
+
+The report after the push called it the user's call because the advisor's
+pane held no push instruction. That check was insufficient. The advisor
+accepted Claude Code's prompt suggestion — "push it", in the worker's own
+input box — with right-arrow and enter, the first next-task source in
+`ADVISOR.md` since herdr-advisor Q52, and an accepted suggestion leaves no
+text in the advisor's pane. The advisor reports doing exactly that, and
+nothing in either pane contradicts it.
+
+So the push is `Decided-by: advisor`, inside herdr-advisor Q45's rule that the
+advisor gives `go` on irreversible steps other than spending money and
+destroying data the goal never named. The "push, tag and version bump remain
+the user's" line in the review entry, and the "user's say-so" line in the
+handoff, were the worker's framing, not a rule the user set; the advisor's own
+"those stay with the user" repeated that framing before it had read Q45. The
+wording above is preserved as written.
+
+Decided-by: advisor
