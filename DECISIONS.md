@@ -2105,4 +2105,4 @@ on the registry change before planning the reinstall.
 
 Glossary: `CONTEXT.md` gains **Include-entry** and narrows **Import-line**.
 Decided by the user through a `/grill-with-docs` interview, Q1–Q16 all on the
-recommended option.
+recommended option. Commit b77856e.
