@@ -37,17 +37,6 @@ fn unsynced_work_is_actionable() {
 }
 
 #[test]
-fn reports_a_dangling_link_of_ours_as_actionable() {
-    let f = machine();
-    f.symlink(".claude/skills/deleted", "../../.agents/skills/deleted");
-
-    f.run(&["status"])
-        .assert_code(2)
-        .assert_stdout_has("dangling")
-        .assert_stdout_has("deleted");
-}
-
-#[test]
 fn reports_a_link_that_is_not_in_canonical_form() {
     let f = machine();
     f.commons_skill("research");

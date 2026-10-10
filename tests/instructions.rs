@@ -129,16 +129,6 @@ fn a_conflict_does_not_keep_the_machine_permanently_dirty() {
 }
 
 #[test]
-fn agents_without_an_instructions_surface_get_nothing() {
-    let f = machine();
-
-    f.run(&["sync"]).assert_clean();
-
-    // Cursor's user-level rules live in app storage, out of agent-sync's reach.
-    assert!(!f.present(".cursor/AGENTS.md"));
-}
-
-#[test]
 fn no_commons_instructions_means_no_instructions_work() {
     let f = Fixture::new();
     f.agent(".codex");

@@ -41,25 +41,6 @@ fn a_skill_the_commons_does_not_have_moves_in_and_leaves_a_link() {
 }
 
 #[test]
-fn an_adopted_skill_reaches_every_other_agent_at_once() {
-    let f = machine();
-    f.file(".claude/skills/local/SKILL.md", "mine\n");
-
-    let out = f.run(&[
-        "adopt",
-        &f.path(".claude/skills/local").display().to_string(),
-    ]);
-
-    out.assert_clean()
-        .assert_stdout_has("linked into pi (.pi/agent/skills)");
-    assert_eq!(
-        f.link_text(".pi/agent/skills/local"),
-        "../../../.agents/skills/local",
-        "the fan-out must leave sync's canonical link form"
-    );
-}
-
-#[test]
 fn sync_right_after_an_adopt_has_nothing_to_do() {
     let f = machine();
     f.file(".claude/skills/local/SKILL.md", "mine\n");
@@ -127,25 +108,6 @@ fn an_identical_copy_is_collapsed_into_a_link() {
 }
 
 #[test]
-fn a_diverged_copy_is_refused_and_nothing_moves() {
-    let f = machine();
-    f.commons_skill("plannotator");
-    f.file(
-        ".claude/skills/plannotator/SKILL.md",
-        "the claude variant\n",
-    );
-    let before = f.tree();
-
-    let out = f.run(&[
-        "adopt",
-        &f.path(".claude/skills/plannotator").display().to_string(),
-    ]);
-
-    out.assert_code(1).assert_stderr_has("Variant");
-    assert_eq!(before, f.tree(), "a refusal must change nothing");
-}
-
-#[test]
 fn a_command_is_adopted_into_the_commands_family() {
     let f = machine();
     f.file(".claude/commands/ship.md", "ship it\n");
@@ -172,20 +134,6 @@ fn something_already_linked_has_nothing_to_adopt() {
     ])
     .assert_code(1)
     .assert_stderr_has("already a symlink");
-}
-
-#[test]
-fn a_path_outside_every_target_and_family_is_refused() {
-    let f = machine();
-    f.file("somewhere/else/thing.md", "not in a target\n");
-
-    f.run(&[
-        "adopt",
-        &f.path("somewhere/else/thing.md").display().to_string(),
-    ])
-    .assert_code(1)
-    .assert_stderr_has("parent directory \"else\" is not a family")
-    .assert_stderr_has("skills/, commands/, or agents/");
 }
 
 #[test]
@@ -315,23 +263,6 @@ fn a_git_file_marks_a_durable_home_too() {
 }
 
 #[test]
-fn re_running_a_source_adopt_is_a_clean_no_op() {
-    let f = machine();
-    f.file("repo/.git/HEAD", "ref: refs/heads/main\n");
-    f.file("repo/skills/research/SKILL.md", "mine\n");
-    let path = f.path("repo/skills/research").display().to_string();
-    f.run(&["adopt", &path]).assert_clean();
-    let before = f.tree();
-
-    let out = f.run(&["adopt", &path]);
-
-    out.assert_clean().assert_stdout_has(&format!(
-        "skills/research is already Sourced from {path} — nothing to do"
-    ));
-    assert_eq!(before, f.tree(), "a no-op must change nothing");
-}
-
-#[test]
 fn a_symlink_input_is_linked_as_given_never_resolved_through() {
     let f = machine();
     f.file("repo/.git/HEAD", "ref: refs/heads/main\n");
@@ -375,53 +306,6 @@ fn an_identical_commons_copy_is_replaced_by_the_link() {
         f.contents(".agents/skills/research/SKILL.md"),
         body,
         "the content still reads through the link"
-    );
-}
-
-#[test]
-fn a_diverged_commons_copy_refuses_the_source() {
-    let f = machine();
-    f.commons_skill("research");
-    f.file("repo/.git/HEAD", "ref: refs/heads/main\n");
-    f.file("repo/skills/research/SKILL.md", "a different body\n");
-    let before = f.tree();
-
-    f.run(&[
-        "adopt",
-        &f.path("repo/skills/research").display().to_string(),
-    ])
-    .assert_code(1)
-    .assert_stderr_has("Variant")
-    .assert_stderr_has("Merge it by hand");
-    assert_eq!(before, f.tree(), "a refusal must change nothing");
-}
-
-#[test]
-fn a_commons_link_pointing_elsewhere_refuses_to_repoint() {
-    let f = machine();
-    f.file(
-        "elsewhere/skills/research/SKILL.md",
-        "the other repo's copy\n",
-    );
-    let other = f.path("elsewhere/skills/research");
-    f.commons_symlink("skills/research", &other.display().to_string());
-    f.file("repo/.git/HEAD", "ref: refs/heads/main\n");
-    f.file("repo/skills/research/SKILL.md", "mine\n");
-
-    f.run(&[
-        "adopt",
-        &f.path("repo/skills/research").display().to_string(),
-    ])
-    .assert_code(1)
-    .assert_stderr_has(&format!(
-        "skills/research is already Sourced from {} — \
-         remove the Commons link first if you mean to repoint it",
-        other.display()
-    ));
-    assert_eq!(
-        f.link_text(".agents/skills/research"),
-        common::slashed(&other),
-        "the existing link is untouched"
     );
 }
 
@@ -677,21 +561,6 @@ fn an_entry_of_a_committed_commons_is_refused_and_left_intact() {
             .contains("body of research"),
         "the entry must survive intact"
     );
-}
-
-#[test]
-fn the_commons_guard_answers_before_the_symlink_refusal() {
-    let f = machine();
-    f.commons_skill("research");
-    // A symlink inside the Commons must hit the guard, not the symlink
-    // refusal: the guard is first in dispatch.
-    f.commons_symlink("skills/linked", "research");
-
-    let entry = f.commons().join("skills/linked");
-    f.run(&["adopt", &entry.display().to_string()])
-        .assert_code(1)
-        .assert_stderr_has("already in the Commons")
-        .assert_stderr_lacks("already a symlink");
 }
 
 // ---- --dry-run ----

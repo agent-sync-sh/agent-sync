@@ -390,24 +390,6 @@ fn an_unmodelled_key_survives_into_every_dialect() {
 }
 
 #[test]
-fn one_unset_variable_stops_every_dialect_before_any_file_is_opened() {
-    let f = machine();
-    f.commons_mcp(r#"{"mcpServers": {"a": {"command": "c", "env": {"K": "${env:NOPE}"}}}}"#);
-
-    let out = f.run(&["sync"]);
-
-    out.assert_code(1).assert_stderr_has("NOPE");
-    for rel in [
-        ".claude.json",
-        ".codex/config.toml",
-        ".cursor/mcp.json",
-        ".gemini/settings.json",
-    ] {
-        assert!(!f.present(rel), "{rel} should not exist");
-    }
-}
-
-#[test]
 fn no_dialect_ever_prints_a_resolved_secret() {
     let f = machine();
     f.commons_mcp(

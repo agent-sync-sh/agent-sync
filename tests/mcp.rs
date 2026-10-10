@@ -130,22 +130,6 @@ fn a_foreign_server_is_never_touched() {
 }
 
 #[test]
-fn a_foreign_server_is_reported_but_needs_no_action() {
-    let f = machine();
-    f.commons_mcp(one_server());
-    f.file(
-        ".claude.json",
-        r#"{"mcpServers": {"handmade": {"command": "mine"}}}"#,
-    );
-    f.run(&["sync"]).assert_clean();
-
-    f.run(&["status"])
-        .assert_code(0)
-        .assert_stdout_has("handmade")
-        .assert_stdout_has("foreign");
-}
-
-#[test]
 fn a_hand_edited_managed_entry_is_restored() {
     let f = machine();
     f.commons_mcp(one_server());
@@ -201,37 +185,6 @@ fn a_stale_key_disappears_when_the_commons_no_longer_has_it() {
 }
 
 #[test]
-fn drift_is_actionable_and_a_synced_machine_is_clean() {
-    let f = machine();
-    f.commons_mcp(one_server());
-
-    f.run(&["status"])
-        .assert_code(2)
-        .assert_stdout_has("serena");
-
-    f.run(&["sync"]).assert_clean();
-
-    f.run(&["status"]).assert_code(0);
-}
-
-#[test]
-fn a_second_sync_changes_nothing_at_all() {
-    let f = machine();
-    f.commons_mcp(one_server());
-    f.run(&["sync"]).assert_clean();
-    let after_first = f.contents(".claude.json");
-
-    let out = f.run(&["sync"]);
-
-    out.assert_clean().assert_stdout_has("up to date");
-    assert_eq!(
-        after_first,
-        f.contents(".claude.json"),
-        "a second sync must be byte-identical"
-    );
-}
-
-#[test]
 fn env_references_resolve_at_sync() {
     let f = machine();
     f.commons_mcp(
@@ -245,22 +198,6 @@ fn env_references_resolve_at_sync() {
     assert_eq!(
         f.json(".claude.json")["mcpServers"]["api"]["headers"]["Authorization"],
         format!("Bearer {CANARY}")
-    );
-}
-
-#[test]
-fn an_unset_variable_is_a_clear_error_and_nothing_is_written() {
-    let f = machine();
-    f.commons_mcp(
-        r#"{"mcpServers": {"api": {"command": "x", "env": {"KEY": "${env:MISSING_TOKEN}"}}}}"#,
-    );
-
-    let out = f.run(&["sync"]);
-
-    out.assert_code(1).assert_stderr_has("MISSING_TOKEN");
-    assert!(
-        !f.present(".claude.json"),
-        "a partially resolved entry must never be written"
     );
 }
 
@@ -350,29 +287,6 @@ fn agents_without_an_mcp_surface_never_get_a_config() {
 }
 
 #[test]
-fn no_commons_file_means_no_mcp_work() {
-    let f = machine();
-    f.commons_skill("research");
-    let before = f.tree();
-
-    f.run(&["sync"]).assert_clean();
-
-    assert!(!f.present(".claude.json"));
-    assert_ne!(before, f.tree(), "the skill still synced");
-}
-
-#[test]
-fn a_malformed_commons_file_is_refused_before_anything_is_written() {
-    let f = machine();
-    f.commons_mcp("{ this is not json");
-
-    let out = f.run(&["sync"]);
-
-    out.assert_code(1).assert_stderr_has("mcp.json");
-    assert!(!f.present(".claude.json"));
-}
-
-#[test]
 fn a_malformed_agent_config_is_reported_not_overwritten() {
     let f = machine();
     f.commons_mcp(one_server());
@@ -393,20 +307,6 @@ fn a_malformed_agent_config_is_reported_not_overwritten() {
 }
 
 #[test]
-fn dry_run_writes_nothing() {
-    let f = machine();
-    f.commons_mcp(one_server());
-    let before = f.tree();
-
-    f.run(&["sync", "--dry-run"])
-        .assert_clean()
-        .assert_stdout_has("serena");
-
-    assert_eq!(before, f.tree());
-    assert!(!f.present(".claude.json"));
-}
-
-#[test]
 fn no_temporary_files_are_left_behind() {
     let f = machine();
     f.commons_mcp(one_server());
@@ -419,22 +319,6 @@ fn no_temporary_files_are_left_behind() {
         .filter(|e| e.contains(".tmp") || e.contains("claude.json."))
         .collect();
     assert!(stray.is_empty(), "temporary files left behind: {stray:?}");
-}
-
-#[test]
-fn awkward_characters_in_values_survive() {
-    let f = machine();
-    f.commons_mcp(
-        r#"{"mcpServers": {"odd": {"command": "x",
-             "env": {"QUOTES": "a\"b", "SLASH": "a\\b", "UNICODE": "héllo→世界"}}}}"#,
-    );
-
-    f.run(&["sync"]).assert_clean();
-
-    let env = &f.json(".claude.json")["mcpServers"]["odd"]["env"];
-    assert_eq!(env["QUOTES"], "a\"b");
-    assert_eq!(env["SLASH"], "a\\b");
-    assert_eq!(env["UNICODE"], "héllo→世界");
 }
 
 #[test]
@@ -459,43 +343,6 @@ fn status_reports_mcp_in_json() {
     let handmade = entries.iter().find(|e| e["name"] == "handmade").unwrap();
     assert_eq!(handmade["state"], "foreign");
     assert_eq!(handmade["actionable"], false);
-}
-
-#[test]
-fn a_held_lock_stops_the_write() {
-    let f = machine();
-    f.commons_mcp(one_server());
-    let _held = common::hold_lock(f.path(".local/state/agent-sync/lock"));
-
-    let out = f.run_with_env(&["sync"], &[("AGENT_SYNC_LOCK_TIMEOUT_MS", "150")]);
-
-    out.assert_code(1).assert_stderr_has("another agent-sync");
-    assert!(!f.present(".claude.json"));
-}
-
-#[test]
-fn a_toml_agent_is_merged_without_losing_the_users_settings() {
-    // Codex keeps MCP in the same file as its model settings. Writing the
-    // standard JSON shape here would corrupt it, so it gets a TOML merge.
-    let f = machine();
-    f.agent(".codex");
-    f.commons_mcp(one_server());
-    f.file(".codex/config.toml", "model = \"gpt-5\"\n");
-
-    let out = f.run(&["sync"]);
-
-    out.assert_clean();
-    let toml = f.contents(".codex/config.toml");
-    assert!(
-        toml.contains("model = \"gpt-5\""),
-        "the user's own settings survive:\n{toml}"
-    );
-    assert!(toml.contains("[mcp_servers.serena]"), "got:\n{toml}");
-    assert_eq!(
-        f.json(".claude.json")["mcpServers"]["serena"]["command"],
-        "uvx",
-        "and the JSON agents are synced in the same run"
-    );
 }
 
 #[test]
@@ -635,14 +482,4 @@ fn a_server_that_is_not_an_object_is_refused() {
     f.run(&["sync"])
         .assert_code(1)
         .assert_stderr_has("must be an object");
-}
-
-#[test]
-fn one_change_is_reported_in_the_singular() {
-    let f = machine();
-    f.commons_mcp(one_server());
-
-    f.run(&["sync"])
-        .assert_clean()
-        .assert_stdout_has("1 change made.");
 }

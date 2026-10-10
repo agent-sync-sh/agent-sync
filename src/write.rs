@@ -140,49 +140,6 @@ fn scratch_path(target: &Path) -> PathBuf {
 mod tests {
     use super::*;
 
-    #[test]
-    fn atomic_writes_the_bytes_and_leaves_no_scratch() {
-        let dir = tempfile::tempdir().unwrap();
-        let target = dir.path().join("nested/file.json");
-
-        let written = atomic(&target, b"{}").unwrap();
-
-        assert_eq!(fs::read(&written.path).unwrap(), b"{}");
-        let strays: Vec<_> = fs::read_dir(target.parent().unwrap())
-            .unwrap()
-            .flatten()
-            .map(|e| e.file_name().to_string_lossy().into_owned())
-            .filter(|n| n != "file.json")
-            .collect();
-        assert!(strays.is_empty(), "scratch file survived: {strays:?}");
-    }
-
-    /// The reported mode is what the caller warns on. Unix carries the existing
-    /// file's bits forward; Windows has no mode to carry, and `atomic` reports 0
-    /// rather than inventing one — see `is_exposed` for why that is honest.
-    #[test]
-    fn atomic_reports_the_mode_its_platform_can_know() {
-        let dir = tempfile::tempdir().unwrap();
-        let target = dir.path().join("file.json");
-
-        #[cfg(unix)]
-        {
-            fs::write(&target, b"old").unwrap();
-            fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
-            let written = atomic(&target, b"new").unwrap();
-            assert_eq!(
-                written.mode, 0o644,
-                "an existing file's mode must survive the replace"
-            );
-        }
-
-        #[cfg(windows)]
-        {
-            let written = atomic(&target, b"new").unwrap();
-            assert_eq!(written.mode, 0, "Windows has no mode bits to report");
-        }
-    }
-
     /// Unix answers from the bits; Windows cannot answer truthfully at all,
     /// because access there is ACL-inherited rather than mode-carried, so it
     /// always says no rather than emitting a warning it cannot stand behind.
@@ -202,28 +159,5 @@ mod tests {
                 assert!(!is_exposed(mode), "Windows must never claim exposure");
             }
         }
-    }
-
-    /// A dangling symlink is followed lexically and the real file is written,
-    /// rather than the link being replaced by a regular file.
-    #[test]
-    fn a_dangling_symlink_target_is_followed_not_flattened() {
-        let dir = tempfile::tempdir().unwrap();
-        let real = dir.path().join("real.json");
-        let link = dir.path().join("link.json");
-        crate::link::create_symlink(Path::new("real.json"), &link).unwrap();
-        assert!(!real.exists(), "the target starts out missing");
-
-        let written = atomic(&link, b"{}").unwrap();
-
-        assert_eq!(written.path, real, "the real file should have been written");
-        assert_eq!(fs::read(&real).unwrap(), b"{}");
-        assert!(
-            fs::symlink_metadata(&link)
-                .unwrap()
-                .file_type()
-                .is_symlink(),
-            "the link must survive as a link"
-        );
     }
 }

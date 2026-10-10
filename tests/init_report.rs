@@ -48,6 +48,9 @@ fn the_report_counts_what_could_be_adopted() {
         .assert_stdout_has("local-thing")
         .assert_stdout_has("another")
         .assert_stdout_has("agent-sync adopt");
+    // Nothing was adopted, only reported.
+    assert!(f.is_real_dir(".claude/skills/local-thing"));
+    assert!(!f.commons().join("skills/local-thing").exists());
 }
 
 #[test]
@@ -86,45 +89,6 @@ fn a_machine_with_nothing_to_adopt_says_so() {
 }
 
 #[test]
-fn the_report_uses_the_projects_vocabulary() {
-    let f = populated();
-
-    let out = f.run(&["init"]);
-
-    out.assert_clean().assert_stdout_has("Commons");
-}
-
-#[test]
-fn init_still_creates_only_the_commons() {
-    let f = populated();
-
-    f.run(&["init"]).assert_clean();
-
-    assert!(f.commons().join("skills").is_dir());
-    for agent in agent_sync::registry::AGENTS {
-        let root = f.path(agent.root);
-        if !["claude", "codex", "pi", "opencode"].contains(&agent.name) {
-            assert!(!root.exists(), "init created a root for {}", agent.name);
-        }
-    }
-    // Nothing was adopted, only reported.
-    assert!(f.is_real_dir(".claude/skills/local-thing"));
-    assert!(!f.commons().join("skills/local-thing").exists());
-}
-
-#[test]
-fn running_init_again_reprints_the_report() {
-    let f = populated();
-    f.run(&["init"]).assert_clean();
-
-    let out = f.run(&["init"]);
-
-    out.assert_clean()
-        .assert_stdout_has("already present")
-        .assert_stdout_has("local-thing");
-}
-
-#[test]
 fn the_report_reflects_work_already_done() {
     let f = populated();
     f.run(&["init"]).assert_clean();
@@ -136,7 +100,10 @@ fn the_report_reflects_work_already_done() {
 
     let out = f.run(&["init"]);
 
-    out.assert_clean().assert_stdout_lacks("local-thing");
+    out.assert_clean()
+        .assert_stdout_has("already present")
+        .assert_stdout_has("another")
+        .assert_stdout_lacks("local-thing");
 }
 
 #[test]

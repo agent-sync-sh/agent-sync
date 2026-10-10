@@ -7,22 +7,6 @@ use common::Fixture;
 use std::fs;
 
 #[test]
-fn target_root_redirects_home_without_touching_the_real_one() {
-    let f = Fixture::new();
-    f.agent(".claude");
-
-    // Only AGENT_SYNC_TARGET_ROOT is set: the Commons defaults to <home>/.agents.
-    let out = f.run_with_vars(
-        &["doctor"],
-        &[("AGENT_SYNC_TARGET_ROOT", f.home().display().to_string())],
-    );
-
-    out.assert_clean()
-        .assert_stdout_has(&f.home().join(".agents").display().to_string())
-        .assert_stdout_has("claude");
-}
-
-#[test]
 fn commons_location_is_independent_of_home() {
     let f = Fixture::new();
     f.agent(".claude");
@@ -40,7 +24,8 @@ fn commons_location_is_independent_of_home() {
 
     out.assert_clean()
         .assert_stdout_has(&elsewhere.display().to_string())
-        .assert_stdout_has("skills        1");
+        .assert_stdout_has("skills        1")
+        .assert_stderr_lacks("will not see it");
 }
 
 #[test]
@@ -121,22 +106,6 @@ fn a_relative_xdg_config_home_is_ignored() {
 
     out.assert_clean()
         .assert_stdout_has(&f.home().join(".config/agent-sync").display().to_string());
-}
-
-#[test]
-fn the_lock_lives_in_the_state_dir_and_the_legacy_dir_stays_absent() {
-    let f = Fixture::new();
-
-    f.run(&["sync"]).assert_clean();
-
-    assert!(
-        f.present(".local/state/agent-sync/lock"),
-        "the lock must land in the XDG state dir"
-    );
-    assert!(
-        !f.present(".agentstow"),
-        "nothing may be created at the legacy config dir"
-    );
 }
 
 #[test]

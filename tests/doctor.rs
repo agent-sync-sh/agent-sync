@@ -6,21 +6,6 @@ mod common;
 use common::Fixture;
 
 #[test]
-fn reports_only_agents_whose_config_root_exists() {
-    let f = Fixture::new();
-    f.agent(".claude");
-    f.agent(".codex");
-
-    let out = f.run(&["doctor"]);
-
-    out.assert_clean()
-        .assert_stdout_has("claude")
-        .assert_stdout_has("codex")
-        .assert_stdout_lacks("windsurf")
-        .assert_stdout_lacks("cline");
-}
-
-#[test]
 fn every_registry_agent_is_detected_by_creating_its_root() {
     // The registry is data: a row's `root` is the whole detection rule. If this
     // holds for every row, adding an agent really is a data-only change.
@@ -32,17 +17,6 @@ fn every_registry_agent_is_detected_by_creating_its_root() {
             .assert_clean()
             .assert_stdout_has(agent.name);
     }
-}
-
-#[test]
-fn reports_the_capabilities_of_a_detected_agent() {
-    let f = Fixture::new();
-    f.agent(".claude");
-
-    f.run(&["doctor"])
-        .assert_clean()
-        .assert_stdout_has("import-line")
-        .assert_stdout_has(".claude/skills");
 }
 
 #[test]
@@ -76,21 +50,6 @@ fn creates_nothing() {
 }
 
 #[test]
-fn does_not_create_roots_for_agents_that_are_not_installed() {
-    let f = Fixture::new();
-
-    f.run(&["doctor"]).assert_clean();
-
-    for agent in agent_sync::registry::AGENTS {
-        assert!(
-            !f.path(agent.root).exists(),
-            "doctor created a config root for {}",
-            agent.name
-        );
-    }
-}
-
-#[test]
 fn warns_about_commons_entries_that_agents_would_never_see() {
     let f = Fixture::new();
     f.commons_skill("research");
@@ -108,18 +67,6 @@ fn warns_about_commons_entries_that_agents_would_never_see() {
 }
 
 #[test]
-fn warns_about_a_dangling_symlink_in_the_commons() {
-    let f = Fixture::new();
-    f.commons_symlink("skills/gone", "../../nowhere");
-
-    let out = f.run(&["doctor"]);
-
-    out.assert_clean()
-        .assert_stdout_has("skills        0")
-        .assert_stderr_has("gone");
-}
-
-#[test]
 fn warns_about_a_non_empty_pre_v2_subagents_dir() {
     let f = Fixture::new();
     f.commons_file("subagents/reviewer.md", "review\n");
@@ -129,15 +76,6 @@ fn warns_about_a_non_empty_pre_v2_subagents_dir() {
     out.assert_clean()
         .assert_stderr_has("no longer a family")
         .assert_stderr_has("agents/");
-}
-
-#[test]
-fn warnings_do_not_make_the_run_fail() {
-    let f = Fixture::new();
-    f.commons_file("skills/README.md", "not a skill\n");
-
-    // A warning is advisory: it is reported, but the machine is still usable.
-    f.run(&["doctor"]).assert_code(0);
 }
 
 #[test]
@@ -254,6 +192,7 @@ fn a_missing_source_is_still_listed_and_marked() {
     let out = f.run(&["doctor"]);
 
     out.assert_clean()
+        .assert_stderr_has("research")
         .assert_stdout_has("skills        0 (1 sourced)")
         .assert_stdout_has(&format!(
             "  skills/research ← {} (source missing)",
@@ -261,43 +200,7 @@ fn a_missing_source_is_still_listed_and_marked() {
         ));
 }
 
-#[test]
-fn the_sourced_suffix_and_section_vanish_when_there_are_none() {
-    let f = Fixture::new();
-    f.commons_skill("research");
-
-    f.run(&["doctor"])
-        .assert_clean()
-        .assert_stdout_lacks("sourced")
-        .assert_stdout_lacks("Sourced entries");
-}
-
 // --- The Commons as a shared commons (ADR-0004) -----------------------------
-
-#[test]
-fn names_commons_entries_that_are_not_ours() {
-    // `~/.agents/` is a commons: opencode, oh-my-pi and hermes read it directly
-    // and the `skills` CLI keeps its lock file there. A neighbour's entry is
-    // named so the sharing is visible — never called an issue, never counted.
-    let f = Fixture::new();
-    f.commons_file(".skill-lock.json", "{}");
-
-    f.run(&["doctor"])
-        .assert_clean()
-        .assert_stdout_has("Other tools in the Commons")
-        .assert_stdout_has(".skill-lock.json")
-        .assert_no_output_contains("issue");
-}
-
-#[test]
-fn says_nothing_about_other_tools_when_there_are_none() {
-    let f = Fixture::new();
-    f.commons_skill("research");
-
-    f.run(&["doctor"])
-        .assert_clean()
-        .assert_stdout_lacks("Other tools in the Commons");
-}
 
 #[test]
 fn protocol_surfaces_are_attributed_not_anonymous() {
@@ -327,7 +230,10 @@ fn absent_protocol_surfaces_are_not_mentioned() {
 
     f.run(&["doctor"])
         .assert_clean()
-        .assert_stdout_lacks("Protocol surfaces");
+        .assert_stdout_lacks("Protocol surfaces")
+        .assert_stdout_lacks("Other tools in the Commons")
+        .assert_stdout_lacks("sourced")
+        .assert_stdout_lacks("Sourced entries");
     assert_eq!(before, f.tree(), "doctor must not create protocol surfaces");
 }
 
@@ -350,24 +256,6 @@ fn a_relocated_commons_warns_that_native_agents_will_not_see_it() {
     .assert_clean()
     .assert_stderr_has("opencode")
     .assert_stderr_has("will not see it");
-}
-
-#[test]
-fn a_relocated_commons_is_silent_when_no_native_agent_is_installed() {
-    let f = Fixture::new();
-    f.agent(".claude");
-    let elsewhere = f.root().join("elsewhere");
-    std::fs::create_dir_all(elsewhere.join("skills")).expect("create alternate Commons");
-
-    f.run_with_vars(
-        &["doctor"],
-        &[
-            ("AGENT_SYNC_TARGET_ROOT", f.home().display().to_string()),
-            ("AGENT_SYNC_HOME", elsewhere.display().to_string()),
-        ],
-    )
-    .assert_clean()
-    .assert_stderr_lacks("will not see it");
 }
 
 #[test]

@@ -47,18 +47,6 @@ fn commands_reach_every_agent_that_reads_markdown_commands() {
 }
 
 #[test]
-fn the_md_suffix_survives_into_the_target() {
-    let f = machine();
-    f.commons_file("commands/ship.md", "ship\n");
-
-    f.run(&["sync"]).assert_clean();
-
-    // Agents glob for *.md; a suffix-less link would be invisible to them.
-    assert!(f.is_symlink(".claude/commands/ship.md"));
-    assert!(!f.present(".claude/commands/ship"));
-}
-
-#[test]
 fn commands_do_not_reach_agents_that_need_rendering_or_have_no_surface() {
     let f = machine();
     f.commons_file("commands/ship.md", "ship\n");
@@ -124,19 +112,6 @@ fn a_command_variant_is_preserved_like_any_other() {
         "a claude-specific version\n"
     );
     assert!(f.is_symlink(".cursor/commands/ship.md"));
-}
-
-#[test]
-fn a_deleted_command_is_pruned_from_every_target() {
-    let f = machine();
-    f.commons_file("commands/ship.md", "ship\n");
-    f.run(&["sync"]).assert_clean();
-    std::fs::remove_file(f.commons().join("commands/ship.md")).unwrap();
-
-    f.run(&["sync"]).assert_clean();
-
-    assert!(!f.present(".claude/commands/ship.md"));
-    assert!(!f.present(".cursor/commands/ship.md"));
 }
 
 #[test]

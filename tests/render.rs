@@ -21,25 +21,6 @@ fn a_command(f: &Fixture) {
 }
 
 #[test]
-fn a_commons_command_becomes_a_gemini_toml_file() {
-    let f = machine();
-    a_command(&f);
-
-    f.run(&["sync"]).assert_clean();
-
-    let toml = f.contents(".gemini/commands/ship.toml");
-    assert!(
-        toml.contains("description = \"Ship the current branch\""),
-        "got:\n{toml}"
-    );
-    assert!(toml.contains("Do the thing."), "got:\n{toml}");
-    assert!(
-        toml.lines().next().unwrap_or("").contains("agent-sync"),
-        "the Marker must be the first thing in the file:\n{toml}"
-    );
-}
-
-#[test]
 fn the_rendered_file_is_valid_toml_gemini_can_read() {
     let f = machine();
     a_command(&f);
@@ -53,17 +34,6 @@ fn the_rendered_file_is_valid_toml_gemini_can_read() {
         Some("Ship the current branch")
     );
     assert!(parsed["prompt"].as_str().unwrap().contains("Do the thing."));
-}
-
-#[test]
-fn markdown_agents_still_get_a_link_not_a_render() {
-    let f = machine();
-    a_command(&f);
-
-    f.run(&["sync"]).assert_clean();
-
-    assert!(f.is_symlink(".claude/commands/ship.md"));
-    assert!(!f.present(".claude/commands/ship.toml"));
 }
 
 #[test]
@@ -137,30 +107,6 @@ fn a_hand_written_file_is_never_pruned_either() {
 }
 
 #[test]
-fn a_marked_file_edited_by_hand_is_restored_and_the_change_is_shown() {
-    let f = machine();
-    a_command(&f);
-    f.run(&["sync"]).assert_clean();
-
-    let tampered = format!(
-        "{}\ndescription = \"tampered\"\nprompt = \"\"\"\nnope\n\"\"\"\n",
-        f.contents(".gemini/commands/ship.toml")
-            .lines()
-            .next()
-            .unwrap()
-    );
-    f.file(".gemini/commands/ship.toml", &tampered);
-
-    let out = f.run(&["sync"]);
-
-    out.assert_clean().assert_stdout_has("ship");
-    assert!(
-        f.contents(".gemini/commands/ship.toml")
-            .contains("Ship the current branch")
-    );
-}
-
-#[test]
 fn a_second_sync_changes_nothing() {
     let f = machine();
     a_command(&f);
@@ -217,30 +163,4 @@ fn status_reports_the_rendered_family() {
             .iter()
             .any(|e| e["agent"] == "gemini" && e["state"] == "missing")
     );
-}
-
-#[test]
-fn dry_run_writes_nothing() {
-    let f = machine();
-    a_command(&f);
-    let before = f.tree();
-
-    f.run(&["sync", "--dry-run"])
-        .assert_clean()
-        .assert_stdout_has("ship");
-
-    assert_eq!(before, f.tree());
-}
-
-#[test]
-fn agents_with_no_render_surface_get_nothing() {
-    let f = Fixture::new();
-    f.agent(".codex");
-    a_command(&f);
-
-    f.run(&["sync"]).assert_clean();
-
-    assert!(!f.exists(".codex/commands"));
-    // Codex takes markdown commands by link instead.
-    assert!(f.is_symlink(".codex/prompts/ship.md"));
 }

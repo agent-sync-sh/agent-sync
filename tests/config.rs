@@ -82,29 +82,6 @@ fn a_custom_target_that_is_not_installed_stays_inert() {
 }
 
 #[test]
-fn no_config_file_means_defaults() {
-    let f = Fixture::new();
-    f.agent(".claude");
-    f.commons_skill("research");
-
-    f.run(&["sync"]).assert_clean();
-
-    assert!(f.is_symlink(".claude/skills/research"));
-}
-
-#[test]
-fn an_empty_config_file_means_defaults() {
-    let f = Fixture::new();
-    f.agent(".claude");
-    f.commons_skill("research");
-    config(&f, "");
-
-    f.run(&["sync"]).assert_clean();
-
-    assert!(f.is_symlink(".claude/skills/research"));
-}
-
-#[test]
 fn malformed_toml_is_a_clear_error() {
     let f = Fixture::new();
     f.agent(".claude");
@@ -132,20 +109,6 @@ fn a_custom_target_without_a_root_is_rejected() {
     config(&f, "[custom.myagent]\nskills = \".myagent/skills\"\n");
 
     f.run(&["sync"]).assert_code(1).assert_stderr_has("root");
-}
-
-#[test]
-fn configuration_never_lands_in_the_commons() {
-    let f = Fixture::new();
-    f.agent(".claude");
-    config(&f, "[targets]\ncursor = false\n");
-
-    f.run(&["sync"]).assert_clean();
-
-    assert!(
-        !f.commons().join("agent-sync.toml").exists(),
-        "the Commons holds ecosystem content only"
-    );
 }
 
 #[test]

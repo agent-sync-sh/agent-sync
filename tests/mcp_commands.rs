@@ -47,18 +47,6 @@ fn an_allowlist_scopes_a_server_to_the_agents_that_want_it() {
 }
 
 #[test]
-fn no_allowlist_means_every_capable_agent() {
-    let f = machine();
-    one_server(&f);
-
-    f.run(&["sync"]).assert_clean();
-
-    assert!(f.present(".claude.json"));
-    assert!(f.present(".cursor/mcp.json"));
-    assert!(f.present(".gemini/settings.json"));
-}
-
-#[test]
 fn an_allowlist_naming_an_unknown_agent_is_an_error() {
     let f = machine();
     one_server(&f);
@@ -103,6 +91,10 @@ fn a_tweak_reaches_one_agent_and_no_other() {
             .is_none(),
         "and no other agent sees it"
     );
+    f.run(&["sync"])
+        .assert_clean()
+        .assert_stdout_has("up to date");
+    f.run(&["status"]).assert_code(0);
 }
 
 #[test]
@@ -124,21 +116,6 @@ fn a_tweak_can_override_a_rendered_key() {
 }
 
 #[test]
-fn tweaks_never_pollute_the_commons() {
-    let f = machine();
-    one_server(&f);
-    config(&f, "[mcp.serena.tweaks.codex]\nstartup_timeout_sec = 20\n");
-
-    f.run(&["sync"]).assert_clean();
-
-    let commons = f.contents_of_commons("mcp.json");
-    assert!(
-        !commons.contains("startup_timeout_sec"),
-        "the Commons holds the standard shape only:\n{commons}"
-    );
-}
-
-#[test]
 fn a_tweak_for_an_unknown_agent_is_an_error() {
     let f = machine();
     one_server(&f);
@@ -147,19 +124,6 @@ fn a_tweak_for_an_unknown_agent_is_an_error() {
     f.run(&["sync"])
         .assert_code(1)
         .assert_stderr_has("nosuchagent");
-}
-
-#[test]
-fn a_tweaked_server_still_converges() {
-    let f = machine();
-    one_server(&f);
-    config(&f, "[mcp.serena.tweaks.codex]\nstartup_timeout_sec = 20\n");
-
-    f.run(&["sync"]).assert_clean();
-    f.run(&["sync"])
-        .assert_clean()
-        .assert_stdout_has("up to date");
-    f.run(&["status"]).assert_code(0);
 }
 
 // ------------------------------------------------------------------ mcp list
@@ -238,23 +202,6 @@ fn remove_deletes_the_server_from_the_commons_and_every_target() {
 }
 
 #[test]
-fn remove_leaves_foreign_servers_and_other_keys_alone() {
-    let f = machine();
-    one_server(&f);
-    f.file(
-        ".claude.json",
-        r#"{"numStartups": 9, "mcpServers": {"handmade": {"command": "mine"}}}"#,
-    );
-    f.run(&["sync"]).assert_clean();
-
-    f.run(&["mcp", "remove", "serena"]).assert_clean();
-
-    let config = f.json(".claude.json");
-    assert_eq!(config["numStartups"], 9);
-    assert_eq!(config["mcpServers"]["handmade"]["command"], "mine");
-}
-
-#[test]
 fn remove_preserves_the_order_of_the_remaining_keys() {
     let f = machine();
     f.commons_mcp(r#"{"mcpServers": {"b": {"command": "x"}}}"#);
@@ -285,36 +232,7 @@ fn removing_a_server_that_is_not_in_the_commons_is_an_error() {
         .assert_stderr_has("ghost");
 }
 
-#[test]
-fn a_removed_server_stays_removed_after_a_sync() {
-    let f = machine();
-    one_server(&f);
-    f.run(&["sync"]).assert_clean();
-    f.run(&["mcp", "remove", "serena"]).assert_clean();
-
-    f.run(&["sync"]).assert_clean();
-
-    assert!(f.json(".claude.json")["mcpServers"].get("serena").is_none());
-}
-
 // ----------------------------------------------------------------- mcp adopt
-
-#[test]
-fn adopt_takes_a_native_claude_entry_into_the_commons() {
-    let f = machine();
-    f.file(
-        ".claude.json",
-        r#"{"mcpServers": {"handmade": {"type": "stdio", "command": "mine", "args": ["-x"]}}}"#,
-    );
-
-    let out = f.run(&["mcp", "adopt", "claude/handmade"]);
-
-    out.assert_clean().assert_stdout_has("handmade");
-    let commons: serde_json::Value =
-        serde_json::from_str(&f.contents_of_commons("mcp.json")).unwrap();
-    assert_eq!(commons["mcpServers"]["handmade"]["command"], "mine");
-    assert_eq!(commons["mcpServers"]["handmade"]["args"][0], "-x");
-}
 
 #[test]
 fn adopting_from_claude_then_syncing_changes_nothing() {
@@ -323,7 +241,13 @@ fn adopting_from_claude_then_syncing_changes_nothing() {
         ".claude.json",
         r#"{"mcpServers": {"handmade": {"type": "stdio", "command": "mine", "args": ["-x"]}}}"#,
     );
-    f.run(&["mcp", "adopt", "claude/handmade"]).assert_clean();
+    f.run(&["mcp", "adopt", "claude/handmade"])
+        .assert_clean()
+        .assert_stdout_has("handmade");
+    let commons: serde_json::Value =
+        serde_json::from_str(&f.contents_of_commons("mcp.json")).unwrap();
+    assert_eq!(commons["mcpServers"]["handmade"]["command"], "mine");
+    assert_eq!(commons["mcpServers"]["handmade"]["args"][0], "-x");
 
     let before = f.contents(".claude.json");
     let out = f.run(&["sync"]);
@@ -361,20 +285,8 @@ fn adopting_from_codex_recovers_the_canonical_shape_and_tweaks() {
         config.contains("startup_timeout_sec"),
         "it becomes a Tweak instead:\n{config}"
     );
-}
-
-#[test]
-fn adopting_from_codex_then_syncing_changes_nothing() {
-    let f = machine();
-    f.file(
-        ".codex/config.toml",
-        "[mcp_servers.native]\ncommand = \"c\"\nargs = [\"-y\"]\nstartup_timeout_sec = 30\n",
-    );
-    f.run(&["mcp", "adopt", "codex/native"]).assert_clean();
     let before = f.contents(".codex/config.toml");
-
     f.run(&["sync"]).assert_clean();
-
     assert_eq!(before, f.contents(".codex/config.toml"));
 }
 
@@ -457,20 +369,6 @@ fn adopt_all_takes_every_foreign_server_it_finds() {
     assert_eq!(commons["mcpServers"]["two"]["command"], "b");
 }
 
-#[test]
-fn adoption_never_prints_a_secret_it_found() {
-    let f = machine();
-    f.file(
-        ".claude.json",
-        r#"{"mcpServers": {"api": {"command": "x", "env": {"KEY": "AGENT-SYNC-CANARY-adopt"}}}}"#,
-    );
-
-    let out = f.run(&["mcp", "adopt", "claude/api"]);
-
-    out.assert_clean()
-        .assert_no_output_contains("AGENT-SYNC-CANARY-adopt");
-}
-
 // ------------------------------------------------ mcp enable | disable
 
 #[test]
@@ -546,23 +444,6 @@ fn disabling_or_enabling_an_unknown_server_is_an_error() {
 }
 
 #[test]
-fn a_second_disable_or_enable_is_a_no_op() {
-    let f = machine();
-    one_server(&f);
-    f.run(&["sync"]).assert_clean();
-
-    f.run(&["mcp", "disable", "serena"]).assert_clean();
-    f.run(&["mcp", "disable", "serena"])
-        .assert_clean()
-        .assert_stdout_has("serena is already disabled");
-
-    f.run(&["mcp", "enable", "serena"]).assert_clean();
-    f.run(&["mcp", "enable", "serena"])
-        .assert_clean()
-        .assert_stdout_has("serena is already enabled");
-}
-
-#[test]
 fn a_hand_set_disabled_key_behaves_like_the_verb_on_the_next_sync() {
     let f = machine();
     one_server(&f);
@@ -581,23 +462,6 @@ fn a_hand_set_disabled_key_behaves_like_the_verb_on_the_next_sync() {
     f.run(&["sync"])
         .assert_clean()
         .assert_stdout_has("up to date");
-    f.run(&["status"]).assert_code(0);
-}
-
-#[test]
-fn a_disabled_server_is_neither_written_nor_counted_as_drift() {
-    let f = machine();
-    f.commons_mcp(r#"{"mcpServers": {"serena": {"command": "uvx", "disabled": true}}}"#);
-
-    f.run(&["sync"])
-        .assert_clean()
-        .assert_stdout_has("up to date");
-
-    assert!(
-        !f.present(".claude.json"),
-        "a Disabled server renders nowhere"
-    );
-    assert!(!f.present(".cursor/mcp.json"));
     f.run(&["status"]).assert_code(0);
 }
 

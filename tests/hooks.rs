@@ -57,17 +57,6 @@ fn a_commons_hook_reaches_every_agent_that_takes_hooks() {
 }
 
 #[test]
-fn agents_without_a_hook_surface_get_nothing() {
-    let f = machine();
-    one_hook(&f);
-
-    f.run(&["sync"]).assert_clean();
-
-    assert!(!f.present(".cursor/hooks.json"));
-    assert!(!f.present(".pi/hooks.json"));
-}
-
-#[test]
 fn other_settings_in_the_same_file_survive() {
     let f = machine();
     one_hook(&f);
@@ -234,16 +223,6 @@ fn an_event_an_agent_does_not_have_is_skipped_and_reported() {
 }
 
 #[test]
-fn an_unknown_event_name_is_a_clear_error() {
-    let f = machine();
-    f.commons_file("hooks/NoSuchMoment.toml", "[[hook]]\ncommand = \"x\"\n");
-
-    f.run(&["sync"])
-        .assert_code(1)
-        .assert_stderr_has("NoSuchMoment");
-}
-
-#[test]
 fn only_command_hooks_are_representable() {
     let f = machine();
     f.commons_file(
@@ -260,17 +239,6 @@ fn a_hook_without_a_command_is_a_clear_error() {
     f.commons_file("hooks/SessionStart.toml", "[[hook]]\nmatcher = \"*\"\n");
 
     f.run(&["sync"]).assert_code(1).assert_stderr_has("command");
-}
-
-#[test]
-fn a_malformed_hook_file_is_refused_before_anything_is_written() {
-    let f = machine();
-    f.commons_file("hooks/SessionStart.toml", "this is not [ toml");
-
-    let out = f.run(&["sync"]);
-
-    out.assert_code(1);
-    assert!(!f.present(".claude/settings.json"));
 }
 
 #[test]
@@ -330,35 +298,6 @@ fn a_hook_command_is_written_verbatim_and_converges() {
         .assert_stdout_has("up to date");
     f.run_with_env(&["status"], &[("TOKEN", "CANARY-hook-9f2")])
         .assert_code(0);
-}
-
-#[test]
-fn a_hook_converges_even_when_the_environment_changes() {
-    let f = machine();
-    f.commons_file(
-        "hooks/SessionStart.toml",
-        "[[hook]]\ncommand = \"notify --token ${env:TOKEN}\"\n",
-    );
-    f.run_with_env(&["sync"], &[("TOKEN", "first")])
-        .assert_clean();
-
-    // A changed value must not orphan the hook and append a second one.
-    f.run_with_env(&["sync"], &[("TOKEN", "second")])
-        .assert_clean()
-        .assert_stdout_has("up to date");
-
-    let hooks = hooks_at(&f, ".claude/settings.json", "hooks", "SessionStart");
-    assert_eq!(hooks.len(), 1, "no orphan was left behind: {hooks:?}");
-}
-
-#[test]
-fn no_commons_hooks_means_no_hook_work() {
-    let f = machine();
-    f.commons_skill("research");
-
-    f.run(&["sync"]).assert_clean();
-
-    assert!(!f.present(".codex/hooks.json"));
 }
 
 #[test]
@@ -430,24 +369,6 @@ fn changing_the_matcher_moves_the_hook() {
 }
 
 #[test]
-fn a_changed_matcher_is_reported_as_drift() {
-    let f = machine();
-    f.commons_file(
-        "hooks/PreToolUse.toml",
-        "[[hook]]\nmatcher = \"Bash\"\ncommand = \"guard\"\n",
-    );
-    f.run(&["sync"]).assert_clean();
-    f.commons_file(
-        "hooks/PreToolUse.toml",
-        "[[hook]]\nmatcher = \"Write\"\ncommand = \"guard\"\n",
-    );
-
-    f.run(&["status"])
-        .assert_code(2)
-        .assert_stdout_has("drifted");
-}
-
-#[test]
 fn moving_our_hook_leaves_a_foreign_sibling_where_it_was() {
     let f = machine();
     f.commons_file(
@@ -479,14 +400,6 @@ fn moving_our_hook_leaves_a_foreign_sibling_where_it_was() {
         .filter_map(|h| h["command"].as_str())
         .collect();
     assert_eq!(commands, vec!["theirs"], "only ours was taken out");
-}
-
-#[test]
-fn doctor_knows_about_the_hooks_family() {
-    let f = machine();
-    one_hook(&f);
-
-    f.run(&["doctor"]).assert_clean().assert_stdout_has("hooks");
 }
 
 #[test]

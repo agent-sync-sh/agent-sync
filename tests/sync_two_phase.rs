@@ -98,8 +98,10 @@ fn problems_from_different_families_are_reported_together() {
 #[test]
 fn a_broken_hook_file_and_an_unknown_event_are_both_named() {
     let f = machine();
-    f.commons_file("hooks/SessionStart.toml", "this is not [ toml");
     f.commons_file("hooks/NoSuchMoment.toml", "[[hook]]\ncommand = \"x\"\n");
+    // An unknown event alone blocks the run; it is not a skippable warning.
+    f.run(&["sync"]).assert_code(1);
+    f.commons_file("hooks/SessionStart.toml", "this is not [ toml");
 
     let out = f.run(&["sync"]);
 
@@ -124,8 +126,14 @@ fn dry_run_prints_exactly_the_plan_the_real_run_executes() {
         "[[hook]]\ncommand = \"notify\"\n",
     );
 
+    let before = tree_sans_state(&f);
     let dry = f.run(&["sync", "--dry-run"]);
     dry.assert_clean();
+    assert_eq!(
+        before,
+        tree_sans_state(&f),
+        "a dry run changes nothing on disk"
+    );
     let real = f.run(&["sync"]);
     real.assert_clean();
 

@@ -49,6 +49,8 @@ fn links_every_commons_skill_into_every_fan_out_target() {
 fn native_agents_receive_no_links() {
     let f = machine();
     f.agent(".gemini");
+    f.agent(".roo");
+    f.agent(".cline");
     f.commons_skill("research");
 
     f.run(&["sync"]).assert_clean();
@@ -68,17 +70,7 @@ fn native_agents_receive_no_links() {
     }
     // Gemini reads the Commons natively too, and never had a fan-out dir.
     assert!(!f.exists(".gemini/skills"));
-}
-
-#[test]
-fn agents_without_a_skill_surface_receive_nothing() {
-    let f = Fixture::new();
-    f.agent(".roo");
-    f.agent(".cline");
-    f.commons_skill("research");
-
-    f.run(&["sync"]).assert_clean();
-
+    // Roo and Cline have no skills surface at all.
     assert!(!f.exists(".roo/skills"));
     assert!(!f.exists(".cline/skills"));
 }
@@ -131,36 +123,6 @@ fn the_legacy_prune_leaves_foreign_links_and_real_content_alone() {
         "codex's own\n",
         "real content in the legacy dir is the agent's own"
     );
-}
-
-#[test]
-fn a_pruned_legacy_dir_converges_and_a_second_sync_is_silent() {
-    let f = machine();
-    f.commons_skill("research");
-    f.symlink(".codex/skills/research", "../../.agents/skills/research");
-    f.run(&["sync"]).assert_clean();
-    let after = f.tree();
-
-    f.run(&["sync"])
-        .assert_clean()
-        .assert_stdout_has("up to date");
-    assert_eq!(after, f.tree(), "the prune must converge");
-}
-
-#[test]
-fn dry_run_reports_the_legacy_prune_without_removing_anything() {
-    let f = machine();
-    f.commons_skill("research");
-    f.symlink(".codex/skills/research", "../../.agents/skills/research");
-    // Fan-out work is already done, so the prune is the whole plan.
-    f.run(&["sync"]).assert_clean();
-    f.symlink(".codex/skills/research", "../../.agents/skills/research");
-    let before = f.tree();
-
-    let out = f.run(&["sync", "--dry-run"]);
-
-    out.assert_clean().assert_stdout_has("duplicate research");
-    assert_eq!(before, f.tree(), "--dry-run must not touch the filesystem");
 }
 
 #[test]
@@ -267,16 +229,6 @@ fn preserves_a_variant_directory() {
 }
 
 #[test]
-fn reports_what_it_did() {
-    let f = machine();
-    f.commons_skill("research");
-
-    f.run(&["sync"])
-        .assert_clean()
-        .assert_stdout_has("research");
-}
-
-#[test]
 fn a_second_sync_changes_nothing_and_says_so() {
     let f = machine();
     f.commons_skill("research");
@@ -320,16 +272,6 @@ fn creates_missing_target_directories_but_never_agent_roots() {
             "{absent} is not installed and must not be created"
         );
     }
-}
-
-#[test]
-fn missing_commons_is_an_error_that_names_the_fix() {
-    let f = Fixture::bare();
-    f.agent(".claude");
-
-    f.run(&["sync"])
-        .assert_code(1)
-        .assert_stderr_has("agent-sync init");
 }
 
 #[test]

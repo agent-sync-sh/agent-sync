@@ -2240,3 +2240,19 @@ worker stopped it anyway, the stop being reversible by the user's next
 appended to the 1.1.0 entry when the peer reports.
 
 Decided-by: advisor
+
+## 2026-10-09 — The test prune counts declarations and measures coverage in points
+
+The goal was "remove 20% of the least useful tests by the test-audit bar while
+code coverage must not drop more than 2%". Two words needed a reading. A test is
+one `#[test]` declaration: the tree has 351 at f6fa4d2 (347 run on macOS, the
+rest are platform-gated), so 20% is at least 71 deletions, a parameter table
+counting once. Coverage is `cargo llvm-cov` over the whole suite on macOS, and
+"2%" is read as 2 percentage points, held for lines, regions and functions all
+three: the base is 87.85% lines, 86.87% regions, 88.48% functions. Points over
+relative percent because the stricter relative reading (1.76 points) still
+leaves room, and the result is checked against it too. Which tests go was
+decided by a per-test ledger against the test-audit skill's retention bar, with
+per-test coverage used to find lines only one test reaches.
+
+Decided-by: agent
