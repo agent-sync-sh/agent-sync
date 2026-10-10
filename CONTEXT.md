@@ -68,11 +68,15 @@ _Avoid_: paused, off
 A per-agent addition merged into one agent's rendering of a server (e.g. Codex's `startup_timeout_sec`), declared in `agent-sync.toml`, never in the Commons file.
 _Avoid_: override, extra, extension
 
+**Instructions route**:
+How one agent reaches the Commons `AGENTS.md`, named `symlink` (a Symlink or Rules-dir link places the file itself) or `import` (an Import-line or Include-entry names it from a file the agent already reads). Each registry row lists the routes its agent can take, default first; `[instructions]` in `agent-sync.toml` picks another, and naming a route the agent lacks is a config error. `sync` removes what a route not taken left of ours, unless the chosen route is blocked (ADR-0009).
+_Avoid_: mechanic choice, mode, strategy
+
 **Import-line**:
-The instructions mechanism for agents whose prose file must stay user-owned *and* whose parser honors an import: ensure one additive, idempotent import line exists (Claude's `@~/.agents/AGENTS.md` in `CLAUDE.md`). The sole sanctioned edit to a user's prose file. Assigned only where the agent is measured to consume the line — an unparsed import leaves the agent with no instructions and no error.
+The instructions mechanism for agents whose prose file must stay user-owned *and* whose parser honors an import: ensure one additive, idempotent import line exists (Claude's `@~/.agents/AGENTS.md` in `CLAUDE.md`, Claude's default route). The sole sanctioned edit to a user's prose file. A file holding nothing but that line is agent-sync's, so the symlink route may replace it. Offered only where the agent is measured to consume the line — an unparsed import leaves the agent with no instructions and no error.
 
 **Include-entry**:
-The instructions mechanism for agents whose config lists the instruction files to load: ensure one entry naming the Commons `AGENTS.md` exists in that list (opencode's `instructions` array; Gemini's `context.fileName` array). Owned by element identity like a hook — an entry that resolves to the Commons file is ours in whatever spelling it was written, and every other entry belongs to whoever put it there. Always appended, never placed first: for Gemini the first element is also where the agent writes its own memories, and that must never be the Commons. Chosen where a symlink at the agent's own instructions path is unsafe because another tool rewrites that file through the link.
+The instructions mechanism for agents whose config lists the instruction files to load: ensure one entry naming the Commons `AGENTS.md` exists in that list (opencode's `instructions` array; Gemini's `context.fileName` array). Owned by element identity like a hook — an entry that resolves to the Commons file is ours in whatever spelling it was written, and every other entry belongs to whoever put it there. Always appended, never placed first: for Gemini the first element is also where the agent writes its own memories, and on this route that must never be the Commons. The default where a symlink at the agent's own instructions path is unsafe because another tool rewrites that file through the link; the user may still choose the symlink route there and accept that hazard (ADR-0009).
 _Avoid_: import-line, config include, instructions key
 
 **Rules-dir link**:

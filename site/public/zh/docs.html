@@ -151,7 +151,7 @@ adopted serena from claude
         <dt>技能、命令、子智能体</dt>
         <dd>符号链接扇出。每个条目在每个智能体目录里有一条规范的相对链接；我们的链接悬空即清理；其他一概不动。原生读取 <code>~/.agents/skills</code> 的智能体——Codex、opencode、oh-my-pi、Gemini CLI、Cursor——完全不会得到技能链接；如果 Codex 或 Cursor 还在读取旧的扇出目录，<code>sync</code> 会把我们如今重复的链接从中清理掉。</dd>
         <dt>指令</dt>
-        <dd>四种机制，因为智能体天生不同。整个文件可以归我们时用普通<em>符号链接</em>（Codex、pi、oh-my-pi、Windsurf）。Claude 的 <code>CLAUDE.md</code> 里有你自己的内容，所以用一行<em>导入行</em>——agent-sync 只确保 <code>@~/.agents/AGENTS.md</code> 存在，只增不改、幂等，且只分配给实测会展开它的智能体。opencode 和 Gemini CLI 自己的配置里列出了要加载的指令文件，所以用<em>包含条目</em>：在 opencode 的 <code>instructions</code> 数组或 Gemini 的 <code>context.fileName</code> 数组里加入一个指向 Commons 文件的元素，只追加、绝不放在首位。它们的指令文件会被另一个工具改写，放符号链接会把那些写入带进 Commons。Roo 会通配整个目录，所以用<em>规则目录链接</em>。</dd>
+        <dd>四种机制，因为智能体天生不同。整个文件可以归我们时用普通<em>符号链接</em>（Codex、pi、oh-my-pi、Windsurf）。Claude 的 <code>CLAUDE.md</code> 里有你自己的内容，所以用一行<em>导入行</em>——agent-sync 只确保 <code>@~/.agents/AGENTS.md</code> 存在，只增不改、幂等，且只分配给实测会展开它的智能体。opencode 和 Gemini CLI 自己的配置里列出了要加载的指令文件，所以用<em>包含条目</em>：在 opencode 的 <code>instructions</code> 数组或 Gemini 的 <code>context.fileName</code> 数组里加入一个指向 Commons 文件的元素，只追加、绝不放在首位。它们的指令文件会被另一个工具改写，放符号链接会把那些写入带进 Commons。Roo 会通配整个目录，所以用<em>规则目录链接</em>。Claude、opencode 和 Gemini CLI 也可以在 <code>agent-sync.toml</code> 里改用符号链接；其他智能体没有 agent-sync 能用的导入途径。</dd>
         <dt>MCP 服务器</dt>
         <dd>渲染成每个智能体的方言并做键级合并。见下文。</dd>
         <dt>钩子</dt>
@@ -248,12 +248,16 @@ startup_timeout_sec = 120         <span class="c"># 只作用于 Codex</span></p
 <pre>[targets]
 cursor = false                    <span class="c"># 完全不碰这个智能体</span>
 
+[instructions]
+claude = "symlink"                <span class="c"># "symlink" 或 "import"；不写则用默认</span>
+
 [custom.myagent]                  <span class="c"># 注册表不认识的智能体</span>
 root = ".myagent"
 skills = ".myagent/skills"
 
 [mcp.heavy-server]
 agents = ["codex"]</pre>
+      <p><code>[instructions]</code> 为每个智能体选择通往 Commons <code>AGENTS.md</code> 的途径。Claude 默认用 <code>import</code>：桌面上的 Claude Cowork 会跳过本身是符号链接的 <code>~/.claude/CLAUDE.md</code>（<a href="https://code.claude.com/docs/en/memory">Claude Code 记忆文档</a>）。Cowork 也会跳过指向会话目录之外的导入，所以在 Cowork 里它只读到 <code>CLAUDE.md</code> 自己的文字。opencode 和 Gemini CLI 也默认用 <code>import</code>。改用 <code>symlink</code> 后，claude-mem 会顺着链接写进 Commons，Gemini 自己的记忆工具也会。智能体没有你指定的那种途径时，配置报错。<code>sync</code> 一次完成切换：把作为我们链接的 <code>CLAUDE.md</code> 换成只含导入行的文件，反之亦然。含有你自己文字的 <code>CLAUDE.md</code> 永远不会被改动。</p>
     </div>
   </section>
 

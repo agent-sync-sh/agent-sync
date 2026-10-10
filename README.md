@@ -95,7 +95,23 @@ since a neighbour's file has no fan-out to report.
 ## Configuration
 
 Optional `agent-sync.toml` in `$XDG_CONFIG_HOME/agent-sync/` (default `~/.config/agent-sync/`):
-disable targets, define custom ones, scope MCP servers per agent, per-agent Tweaks. The
+disable targets, define custom ones, choose each agent's instructions route, scope MCP servers
+per agent, per-agent Tweaks.
+
+```toml
+[instructions]
+claude = "symlink"   # "symlink" or "import"; omitted, the agent's default
+```
+
+Claude, opencode and Gemini CLI offer both routes and default to `import`. Claude Cowork on the
+desktop skips a `~/.claude/CLAUDE.md` that is a symlink
+([Claude Code memory docs](https://code.claude.com/docs/en/memory)), and it also skips an
+import that points outside the session's folder, so there it reads only `CLAUDE.md`'s own
+text. For opencode and Gemini, `symlink` lets claude-mem, and Gemini's own memory tool, write
+through the link into the Commons. Every other agent takes the one route it has, and naming a
+route it lacks is a configuration error (ADR-0009).
+
+The
 lock — agent-sync's only machine state — lives in `$XDG_STATE_HOME/agent-sync/` (default
 `~/.local/state/agent-sync/`). Environment: `AGENT_SYNC_HOME` relocates the Commons (doctor
 warns — native readers won't follow), `AGENT_SYNC_TARGET_ROOT` resolves everything against

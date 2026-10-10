@@ -14,3 +14,5 @@ agentsync (the closest prior art) copies + renders + per-key-merges configs into
 *Amended 2026-08-16: "the Store" is renamed **the Commons** (DECISIONS.md 2026-08-16); wording above is preserved as written. Windows shipped in 1.2.0.*
 
 *Amended 2026-09-18: the "sole sanctioned edit" is now the sole sanctioned edit to a user's **prose** file. opencode and gemini take an **Include-entry** in their own config's list of instruction files instead of a symlink, because another tool rewrites their instructions file through a link (ADR-0008); wording above is preserved as written.*
+
+*Amended 2026-10-09: Claude can now take a symlink over `~/.claude/CLAUDE.md` when the user chooses the symlink instructions route; the import line stays its default, and a file holding nothing but that line is agent-sync's to replace (ADR-0009). Wording above is preserved as written.*

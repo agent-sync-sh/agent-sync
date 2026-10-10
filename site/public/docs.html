@@ -208,7 +208,9 @@ adopted serena from claude
         array or Gemini's <code>context.fileName</code> array, appended and never placed
         first. Their instructions files are rewritten by another tool, so a symlink there
         would carry its writes into the Commons. A
-        <em>rules-dir link</em> for Roo, which globs a directory.</dd>
+        <em>rules-dir link</em> for Roo, which globs a directory. Claude, opencode and
+        Gemini CLI also take a symlink if you ask for it in <code>agent-sync.toml</code>;
+        the other agents have no import route agent-sync can use.</dd>
         <dt>MCP servers</dt>
         <dd>Rendered into each agent's dialect and key-merged. See below.</dd>
         <dt>Hooks</dt>
@@ -337,12 +339,27 @@ startup_timeout_sec = 120         <span class="c"># reaches Codex alone</span></
 <pre>[targets]
 cursor = false                    <span class="c"># leave this agent alone entirely</span>
 
+[instructions]
+claude = "symlink"                <span class="c"># "symlink" or "import"; omitted, the default</span>
+
 [custom.myagent]                  <span class="c"># an agent the registry does not know</span>
 root = ".myagent"
 skills = ".myagent/skills"
 
 [mcp.heavy-server]
 agents = ["codex"]</pre>
+      <p><code>[instructions]</code> picks each agent's route to the Commons
+      <code>AGENTS.md</code>. Claude defaults to <code>import</code>: Claude Cowork on the
+      desktop skips a <code>~/.claude/CLAUDE.md</code> that is a symlink
+      (<a href="https://code.claude.com/docs/en/memory">Claude Code memory docs</a>).
+      Cowork also skips an import that points outside the session's folder, so there it
+      reads only <code>CLAUDE.md</code>'s own text. opencode and Gemini CLI default to
+      <code>import</code> too. With <code>symlink</code>, claude-mem writes through the link
+      into the Commons, and so does Gemini's own memory tool. An agent with no route of the
+      kind you name is a configuration error. <code>sync</code> switches routes in one
+      pass: it swaps a <code>CLAUDE.md</code> that is our link for a file holding only the
+      import line, and back. A <code>CLAUDE.md</code> with your own text is never
+      touched.</p>
     </div>
   </section>
 

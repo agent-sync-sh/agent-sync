@@ -7,8 +7,10 @@
 //! a **rules-dir link** where the agent globs a directory; and an
 //! **include-entry** where the agent's own config lists the instruction files
 //! it loads, so one element naming the Commons file is all it takes. Each is
-//! assigned from measured parser behavior, not from ownership alone — the
-//! evidence is ADR-0008.
+//! offered from measured parser behavior, not from ownership alone — the
+//! evidence is ADR-0008. Where an agent offers a symlink and an import route,
+//! the user picks one in `agent-sync.toml`, and `sync` removes what the other
+//! left of ours (ADR-0009).
 //!
 //! A Foreign file already occupying the destination is a conflict: agent-sync
 //! reports it with a remediation hint and writes nothing. Resolving it is a
