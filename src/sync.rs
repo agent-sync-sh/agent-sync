@@ -493,3 +493,55 @@ fn sync_target(
 
     changed
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_failed_write_skips_the_rest_of_that_targets_instructions() {
+        let home = tempfile::tempdir().unwrap();
+        let h = home.path();
+        let entry = "{\"instructions\": [\"~/.agents/AGENTS.md\"]}\n";
+        for (path, text) in [
+            (".agents/AGENTS.md", "# shared instructions\n"),
+            (".config/opencode/opencode.json", entry),
+            (
+                ".config/agent-sync/agent-sync.toml",
+                "[instructions]\nopencode = \"symlink\"\n",
+            ),
+            ("blocker", ""),
+        ] {
+            std::fs::create_dir_all(h.join(path).parent().unwrap()).unwrap();
+            std::fs::write(h.join(path), text).unwrap();
+        }
+        let env = Env::resolve(&[("HOME".into(), h.display().to_string())]).unwrap();
+        let config = Config::load(env.config_dir()).unwrap();
+        let mut items = instructions::survey(&env, &config, &h.join(".agents/AGENTS.md"));
+        let states: Vec<_> = items
+            .iter()
+            .map(|i| (i.target.as_str(), &i.state))
+            .collect();
+        assert_eq!(
+            states,
+            [
+                ("opencode", &instructions::State::Missing),
+                ("opencode", &instructions::State::Legacy),
+            ],
+            "the chosen link, then the include entry it replaces"
+        );
+        // A file where the link's folder should be fails the write on every platform.
+        items[0].path = h.join("blocker/AGENTS.md");
+
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        let mut r = Reporter::new(&mut out, &mut err);
+        sync_instructions(&env, &items, &mut r, false);
+
+        assert_eq!(r.problem_count(), 1);
+        assert_eq!(
+            std::fs::read_to_string(h.join(".config/opencode/opencode.json")).unwrap(),
+            entry,
+            "a failed link must not cost opencode the entry it still reads"
+        );
+    }
+}
