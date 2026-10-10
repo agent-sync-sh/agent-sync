@@ -40,10 +40,14 @@ pub enum State {
     Conflict,
     /// A symlink pointing somewhere other than the Commons.
     Foreign,
-    /// Our symlink at the path an earlier registry used for an agent that now
-    /// takes an include-entry — the write-through hazard ADR-0008 closes.
+    /// Our symlink, or our include entry, from a route this Target does not
+    /// take — an earlier registry's, or the user's earlier choice (ADR-0009).
     /// Removed by `sync`; a real file there is not even named.
-    LegacyLink,
+    Legacy,
+    /// The other route's artifact of ours on this very path — Claude's
+    /// `CLAUDE.md` as our link, or as a file holding only the import line —
+    /// swapped by `sync` for the chosen route's (ADR-0009).
+    Replace,
 }
 
 impl State {
@@ -51,7 +55,7 @@ impl State {
     pub fn needs_change(&self) -> bool {
         matches!(
             self,
-            State::Missing | State::ImportMissing | State::LegacyLink
+            State::Missing | State::ImportMissing | State::Legacy | State::Replace
         )
     }
 
@@ -69,7 +73,8 @@ impl State {
             State::ImportMissing => "import",
             State::Conflict => "conflict",
             State::Foreign => "foreign",
-            State::LegacyLink => "legacy",
+            State::Legacy => "legacy",
+            State::Replace => "replace",
         }
     }
 }
@@ -151,10 +156,23 @@ impl Item {
                 ),
             },
             State::Foreign => "points outside the Commons — left alone".into(),
-            State::LegacyLink => format!(
-                "{} is a symlink into the Commons that another tool writes through — will be removed",
-                self.path.display()
+            State::Legacy if self.include.is_some() => format!(
+                "the entry in {} is from a route {} does not take — will be removed",
+                self.path.display(),
+                self.target
             ),
+            State::Legacy => format!(
+                "{} is a symlink into the Commons from a route {} does not take — will be removed",
+                self.path.display(),
+                self.target
+            ),
+            State::Replace if self.link_text.is_some() => {
+                "holds only the import line — will be replaced by a link to the Commons".into()
+            }
+            State::Replace => {
+                "is a link to the Commons — will be replaced by a file holding the import line"
+                    .into()
+            }
         }
     }
 }
@@ -171,8 +189,31 @@ pub fn survey(env: &Env, config: &Config, commons_file: &Path) -> Vec<Item> {
     let mut items = Vec::new();
 
     for target in target::resolve(env, config) {
-        let item = match target.instructions {
-            Instructions::Symlink(rel) => link_item(&target.name, env.in_home(rel), commons_file),
+        let Some(chosen) = target.instructions else {
+            continue;
+        };
+        let routes = target.agent.map_or(&[][..], |a| a.instructions);
+        let item = match chosen {
+            Instructions::Symlink(rel) => {
+                let mut item = link_item(&target.name, env.in_home(rel), commons_file);
+                // The import route on this same path leaves either a file of
+                // ours, swapped for the link, or the user's own prose, which
+                // is never touched — so the note names both ways out.
+                if item.state == State::Conflict && routes.contains(&Instructions::ImportLine(rel))
+                {
+                    if holds_only_import(&item.path, env) {
+                        item.state = State::Replace;
+                    } else if item.occupant.is_none() {
+                        item.reason = Some(format!(
+                            "{} is a real file: move its text into the Commons AGENTS.md and sync again, \
+                             or set instructions.{} = \"import\" in agent-sync.toml to keep it",
+                            item.path.display(),
+                            target.name
+                        ));
+                    }
+                }
+                item
+            }
             Instructions::RulesDirLink(dir) => {
                 let path = env.in_home(dir).join("AGENTS.md");
                 link_item(&target.name, path, commons_file)
@@ -182,21 +223,53 @@ pub fn survey(env: &Env, config: &Config, commons_file: &Path) -> Vec<Item> {
                 file,
                 key,
                 keep_first,
-                legacy_link,
-            } => {
-                if let Some(item) = legacy_link
-                    .and_then(|rel| legacy_item(&target.name, env.in_home(rel), commons_file))
-                {
-                    items.push(item);
-                }
-                include_item(&target.name, env.in_home(file), key, keep_first, env)
-            }
-            Instructions::None => continue,
+            } => include_item(&target.name, env.in_home(file), key, keep_first, env),
         };
+
+        // What the routes not taken left behind goes, so the agent reads the
+        // Commons once — but only while the chosen route is not blocked, so
+        // it is never left with neither. A route on the chosen path is the
+        // chosen item's own business.
+        let blocked = matches!(item.state, State::Conflict | State::Foreign);
+        let leftovers: Vec<Item> = routes
+            .iter()
+            .filter(|route| !blocked && **route != chosen)
+            .filter_map(|route| leftover_item(&target.name, *route, env, commons_file))
+            .filter(|leftover| leftover.path != item.path)
+            .collect();
         items.push(item);
+        items.extend(leftovers);
     }
 
     items
+}
+
+/// What a route this Target does not take left in place, if it is ours.
+fn leftover_item(
+    target: &str,
+    route: Instructions,
+    env: &Env,
+    commons_file: &Path,
+) -> Option<Item> {
+    match route {
+        Instructions::Symlink(rel) => legacy_item(target, env.in_home(rel), commons_file),
+        Instructions::RulesDirLink(dir) => {
+            legacy_item(target, env.in_home(dir).join("AGENTS.md"), commons_file)
+        }
+        Instructions::IncludeEntry {
+            file,
+            key,
+            keep_first,
+        } => {
+            let item = include_item(target, env.in_home(file), key, keep_first, env);
+            (item.state == State::ImportPresent).then_some(Item {
+                state: State::Legacy,
+                ..item
+            })
+        }
+        // Only Claude has one, on the very path its symlink route takes.
+        Instructions::ImportLine(_) => None,
+    }
 }
 
 fn link_item(target: &str, path: PathBuf, commons_file: &Path) -> Item {
@@ -235,10 +308,10 @@ fn link_item(target: &str, path: PathBuf, commons_file: &Path) -> Item {
     }
 }
 
-/// The path an earlier registry symlinked for an agent that now takes an
-/// include-entry. Only our own link is an item: a real file there is the
-/// agent's (or another tool's) and is no longer a destination, so it is not a
-/// Conflict; a link elsewhere is Foreign in a directory we no longer narrate.
+/// The path a link route the Target does not take would use. Only our own
+/// link is an item: a real file there is the agent's (or another tool's) and
+/// is no longer a destination, so it is not a Conflict; a link elsewhere is
+/// Foreign in a directory we no longer narrate.
 fn legacy_item(target: &str, path: PathBuf, commons_file: &Path) -> Option<Item> {
     let meta = fs::symlink_metadata(&path).ok()?;
     if !meta.file_type().is_symlink() {
@@ -251,7 +324,7 @@ fn legacy_item(target: &str, path: PathBuf, commons_file: &Path) -> Option<Item>
     Some(Item {
         target: target.to_string(),
         path,
-        state: State::LegacyLink,
+        state: State::Legacy,
         link_text: None,
         import_line: None,
         include: None,
@@ -523,23 +596,32 @@ fn write_document(path: &Path, document: &Value) -> std::io::Result<()> {
 fn import_item(target: &str, path: PathBuf, env: &Env) -> Item {
     let reference = import_reference(env);
     let line = format!("@{reference}");
+    let mut reason = None;
 
-    let state = match fs::read_to_string(&path) {
-        Ok(body) => {
+    let state = if link::is_ours(&path, env.commons()) {
+        // Our link here is the symlink route's, swapped for a file holding
+        // the line. Appending through it would write into the Commons itself.
+        let commons_file = env.commons().join(crate::commons::INSTRUCTIONS);
+        let actual = fs::read_link(&path).unwrap_or_default();
+        if link::resolve_link(&path, &actual) == link::normalize(&commons_file) {
+            State::Replace
+        } else {
+            reason = Some(format!(
+                "{} is a symlink into the Commons, so an import line would land in the Commons \
+                 — replace the link with your own file",
+                path.display()
+            ));
+            State::Conflict
+        }
+    } else {
+        match fs::read_to_string(&path) {
             // Only a line that *is* the import counts. Prose mentioning the
             // path, or a commented-out import, must not suppress the real one.
-            let imported = body.lines().any(|l| {
-                let l = l.trim();
-                l == line || (l.starts_with('@') && l[1..].trim() == reference)
-            });
-            if imported {
-                State::ImportPresent
-            } else {
-                State::ImportMissing
-            }
+            Ok(body) if body.lines().any(|l| is_import_of(l, &reference)) => State::ImportPresent,
+            Ok(_) => State::ImportMissing,
+            // No file yet: one containing just the import is a fine starting point.
+            Err(_) => State::ImportMissing,
         }
-        // No file yet: one containing just the import is a fine starting point.
-        Err(_) => State::ImportMissing,
     };
 
     Item {
@@ -550,8 +632,26 @@ fn import_item(target: &str, path: PathBuf, env: &Env) -> Item {
         import_line: Some(line),
         include: None,
         occupant: None,
-        reason: None,
+        reason,
     }
+}
+
+/// Whether one line of a prose file is the import of `reference` — the single
+/// test sync, revert and the route swap all use.
+fn is_import_of(line: &str, reference: &str) -> bool {
+    line.trim()
+        .strip_prefix('@')
+        .is_some_and(|rest| rest.trim() == reference)
+}
+
+/// A real file whose every non-blank line is our import holds nothing of the
+/// user's: agent-sync wrote it, so it may give way to the symlink route.
+fn holds_only_import(path: &Path, env: &Env) -> bool {
+    let reference = import_reference(env);
+    fs::read_to_string(path).is_ok_and(|body| {
+        let mut lines = body.lines().filter(|l| !l.trim().is_empty()).peekable();
+        lines.peek().is_some() && lines.all(|l| is_import_of(l, &reference))
+    })
 }
 
 /// How the Commons instructions should be referred to inside a user's file:
@@ -580,8 +680,11 @@ fn import_reference(env: &Env) -> String {
 /// file itself stays even when the line was all it held. `Ok(true)` when a
 /// line was removed; a file that never had one (or does not exist) is `Ok(false)`.
 pub fn remove_import_line(env: &Env, path: &Path) -> std::io::Result<bool> {
+    // Through our link this file is the Commons, which is not the user's file.
+    if link::is_ours(path, env.commons()) {
+        return Ok(false);
+    }
     let reference = import_reference(env);
-    let line = format!("@{reference}");
 
     let body = match fs::read_to_string(path) {
         Ok(body) => body,
@@ -594,8 +697,7 @@ pub fn remove_import_line(env: &Env, path: &Path) -> std::io::Result<bool> {
     let mut kept = String::with_capacity(body.len());
     let mut removed = false;
     for piece in body.split_inclusive('\n') {
-        let l = piece.trim_end_matches(['\n', '\r']).trim();
-        if l == line || (l.starts_with('@') && l[1..].trim() == reference) {
+        if is_import_of(piece, &reference) {
             removed = true;
             continue;
         }
@@ -610,7 +712,7 @@ pub fn remove_import_line(env: &Env, path: &Path) -> std::io::Result<bool> {
 }
 
 /// Bring one item to its intended state. Conflicts and Foreign links are no-ops.
-pub fn apply(item: &Item) -> std::io::Result<()> {
+pub fn apply(env: &Env, item: &Item) -> std::io::Result<()> {
     match item.state {
         State::Missing => {
             let text = item.link_text.as_ref().expect("a link mechanism");
@@ -623,21 +725,38 @@ pub fn apply(item: &Item) -> std::io::Result<()> {
             let include = item.include.as_ref().expect("an include mechanism");
             add_entry(&item.path, include)
         }
-        State::LegacyLink => crate::link::remove_symlink(&item.path),
-        State::ImportMissing => {
-            let line = item.import_line.as_ref().expect("an import mechanism");
-            if let Some(parent) = item.path.parent() {
-                fs::create_dir_all(parent)?;
+        State::Legacy => match &item.include {
+            Some(include) => {
+                remove_include_entry(env, &item.path, include.key, include.keep_first).map(|_| ())
             }
-            let existing = fs::read_to_string(&item.path).unwrap_or_default();
-            let mut body = existing.clone();
-            if !body.is_empty() && !body.ends_with('\n') {
-                body.push('\n');
-            }
-            body.push_str(line);
-            body.push('\n');
-            fs::write(&item.path, body)
+            None => crate::link::remove_symlink(&item.path),
+        },
+        // shortcut: the file goes before the link exists, so where links fail
+        // (Windows without Developer Mode) only our line is lost and the error
+        // is reported; link to a temp name and rename if Windows users hit it.
+        State::Replace if item.link_text.is_some() => {
+            fs::remove_file(&item.path)?;
+            crate::link::create_symlink(item.link_text.as_ref().expect("a link"), &item.path)
         }
+        State::Replace => {
+            crate::link::remove_symlink(&item.path)?;
+            append_import(item)
+        }
+        State::ImportMissing => append_import(item),
         _ => Ok(()),
     }
+}
+
+fn append_import(item: &Item) -> std::io::Result<()> {
+    let line = item.import_line.as_ref().expect("an import mechanism");
+    if let Some(parent) = item.path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let mut body = fs::read_to_string(&item.path).unwrap_or_default();
+    if !body.is_empty() && !body.ends_with('\n') {
+        body.push('\n');
+    }
+    body.push_str(line);
+    body.push('\n');
+    fs::write(&item.path, body)
 }

@@ -288,6 +288,7 @@ fn as_value(
         .map(|i| {
             json!({
                 "agent": i.target,
+                "path": i.path,
                 "state": i.state.label(),
                 "actionable": i.state.actionable(),
             })

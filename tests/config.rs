@@ -112,6 +112,45 @@ fn a_custom_target_without_a_root_is_rejected() {
 }
 
 #[test]
+fn an_instructions_route_the_agent_cannot_take_is_rejected() {
+    let f = Fixture::new();
+    f.agent(".claude");
+    for (body, needle) in [
+        ("[instructions]\ncodex = \"import\"\n", "ADR-0008"),
+        ("[instructions]\ncursor = \"symlink\"\n", "cursor"),
+        (
+            "[instructions]\nclaude = \"copy\"\n",
+            "\"symlink\" or \"import\"",
+        ),
+        ("[instructions]\nnosuchagent = \"symlink\"\n", "nosuchagent"),
+        (
+            "[custom.myagent]\nroot = \".myagent\"\n[instructions]\nmyagent = \"symlink\"\n",
+            "myagent",
+        ),
+    ] {
+        config(&f, body);
+        f.run(&["sync"]).assert_code(1).assert_stderr_has(needle);
+    }
+
+    config(
+        &f,
+        "[instructions]\nclaude = \"symlink\"\ngemini = \"import\"\n",
+    );
+    f.run(&["sync"]).assert_clean();
+}
+
+#[test]
+fn every_instructions_route_name_reaches_exactly_one_route() {
+    // A second route under one name could never be chosen.
+    for agent in agent_sync::registry::AGENTS {
+        let mut names: Vec<_> = agent.instructions.iter().map(|i| i.route()).collect();
+        names.sort();
+        names.dedup();
+        assert_eq!(names.len(), agent.instructions.len(), "{}", agent.name);
+    }
+}
+
+#[test]
 fn a_disabled_target_is_not_counted_as_missing() {
     let f = Fixture::new();
     f.agent(".claude");

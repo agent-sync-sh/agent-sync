@@ -25,7 +25,7 @@ pub enum Skills {
     None,
 }
 
-/// How an agent gets the shared `AGENTS.md`.
+/// One way an agent can get the shared `AGENTS.md`: its instructions route.
 ///
 /// A Foreign file occupying the destination is a *runtime* state (reported as a
 /// conflict), not a separate mechanism — every mechanism below yields to one.
@@ -52,12 +52,18 @@ pub enum Instructions {
         /// element 0 is also its memory write target, and that must never be
         /// the Commons. `None` when the list has no such slot.
         keep_first: Option<&'static str>,
-        /// The path a pre-ADR-0008 registry symlinked here, pruned by `sync`
-        /// when it still resolves into the Commons. Never a real file.
-        legacy_link: Option<&'static str>,
     },
-    /// No user-scope instructions surface.
-    None,
+}
+
+impl Instructions {
+    /// The route's name in `agent-sync.toml`: a link places the Commons file
+    /// itself, an import names it from a file the agent already reads.
+    pub fn route(self) -> &'static str {
+        match self {
+            Instructions::Symlink(_) | Instructions::RulesDirLink(_) => "symlink",
+            Instructions::ImportLine(_) | Instructions::IncludeEntry { .. } => "import",
+        }
+    }
 }
 
 /// Wire format of the file an entry family is merged into.
@@ -146,7 +152,10 @@ pub struct Agent {
     /// Home-relative config root. Its existence *is* detection.
     pub root: &'static str,
     pub skills: Skills,
-    pub instructions: Instructions,
+    /// Every instructions route this agent can take, at most one per route
+    /// name, the default first. `[instructions]` in `agent-sync.toml` picks
+    /// another; read the chosen one from the Target. Empty: no surface.
+    pub instructions: &'static [Instructions],
     pub mcp: Mcp,
     pub commands: Commands,
     pub agents: Agents,
@@ -198,8 +207,8 @@ impl Agent {
     }
 
     /// Human-readable capability summary, in family order, naming the
-    /// instructions mechanic the Target resolved rather than the row's default.
-    pub fn capabilities(&self, instructions: Instructions) -> Vec<(&'static str, String)> {
+    /// instructions route the Target resolved rather than the row's default.
+    pub fn capabilities(&self, instructions: Option<Instructions>) -> Vec<(&'static str, String)> {
         vec![
             ("skills", describe_skills(self.skills)),
             ("instructions", describe_instructions(instructions)),
@@ -222,13 +231,15 @@ fn describe_skills(c: Skills) -> String {
     }
 }
 
-pub(crate) fn describe_instructions(c: Instructions) -> String {
+pub(crate) fn describe_instructions(c: Option<Instructions>) -> String {
     match c {
-        Instructions::Symlink(p) => format!("symlink → {p}"),
-        Instructions::ImportLine(p) => format!("import-line → {p}"),
-        Instructions::RulesDirLink(d) => format!("rules-dir link → {d}"),
-        Instructions::IncludeEntry { file, key, .. } => format!("include-entry → {file} {key}"),
-        Instructions::None => "none".into(),
+        Some(Instructions::Symlink(p)) => format!("symlink → {p}"),
+        Some(Instructions::ImportLine(p)) => format!("import-line → {p}"),
+        Some(Instructions::RulesDirLink(d)) => format!("rules-dir link → {d}"),
+        Some(Instructions::IncludeEntry { file, key, .. }) => {
+            format!("include-entry → {file} {key}")
+        }
+        None => "none".into(),
     }
 }
 
@@ -269,9 +280,13 @@ pub const AGENTS: &[Agent] = &[
         name: "claude",
         root: ".claude",
         skills: Skills::FanOut(".claude/skills"),
-        // Claude users keep their own content in CLAUDE.md, so agent-sync adds
-        // only the import line — never a symlink over the whole file.
-        instructions: Instructions::ImportLine(".claude/CLAUDE.md"),
+        // The import line by default: Claude Cowork desktop sessions skip a
+        // ~/.claude/CLAUDE.md that is itself a symlink, and users keep their
+        // own content there. The symlink is on request (ADR-0009).
+        instructions: &[
+            Instructions::ImportLine(".claude/CLAUDE.md"),
+            Instructions::Symlink(".claude/CLAUDE.md"),
+        ],
         mcp: Mcp::KeyMerge {
             file: ".claude.json",
             root_key: "mcpServers",
@@ -303,7 +318,7 @@ pub const AGENTS: &[Agent] = &[
         // prompt-input`, 2026-09-18; upstream openai/codex#6038 and #17401).
         // The link is safe here because claude-mem's Codex writer only strips
         // its own tags and never writes the file. Evidence: ADR-0008.
-        instructions: Instructions::Symlink(".codex/AGENTS.md"),
+        instructions: &[Instructions::Symlink(".codex/AGENTS.md")],
         mcp: Mcp::KeyMerge {
             file: ".codex/config.toml",
             root_key: "mcp_servers",
@@ -324,16 +339,19 @@ pub const AGENTS: &[Agent] = &[
         // contract other agents hardcode (ADR-0004), not agent-sync's private
         // choice, so fan-out here would only create duplicate-name warnings.
         skills: Skills::Native { legacy: None },
-        // Not a symlink: claude-mem rewrites ~/.config/opencode/AGENTS.md on
-        // every session with a plain write, which follows a link straight into
-        // the Commons. opencode has no `@` import either; its own route is the
-        // `instructions` list in opencode.json (ADR-0008).
-        instructions: Instructions::IncludeEntry {
-            file: ".config/opencode/opencode.json",
-            key: "instructions",
-            keep_first: None,
-            legacy_link: Some(".config/opencode/AGENTS.md"),
-        },
+        // Not a symlink by default: claude-mem rewrites
+        // ~/.config/opencode/AGENTS.md on every session with a plain write,
+        // which follows a link straight into the Commons. opencode has no `@`
+        // import either; its own route is the `instructions` list in
+        // opencode.json (ADR-0008). The link is on request (ADR-0009).
+        instructions: &[
+            Instructions::IncludeEntry {
+                file: ".config/opencode/opencode.json",
+                key: "instructions",
+                keep_first: None,
+            },
+            Instructions::Symlink(".config/opencode/AGENTS.md"),
+        ],
         mcp: Mcp::KeyMerge {
             file: ".config/opencode/opencode.json",
             root_key: "mcp",
@@ -348,7 +366,7 @@ pub const AGENTS: &[Agent] = &[
         name: "pi",
         root: ".pi",
         skills: Skills::FanOut(".pi/agent/skills"),
-        instructions: Instructions::Symlink(".pi/agent/AGENTS.md"),
+        instructions: &[Instructions::Symlink(".pi/agent/AGENTS.md")],
         // pi rejects MCP by design ("build CLI tools with READMEs").
         mcp: Mcp::None,
         commands: Commands::None,
@@ -361,7 +379,7 @@ pub const AGENTS: &[Agent] = &[
         // Reads ~/.agents/skills directly (ADR-0004); it keeps no skills
         // directory of its own, so there is nothing to fan out into.
         skills: Skills::Native { legacy: None },
-        instructions: Instructions::Symlink(".omp/agent/AGENTS.md"),
+        instructions: &[Instructions::Symlink(".omp/agent/AGENTS.md")],
         mcp: Mcp::NativeViaDiscovery,
         commands: Commands::NativeViaDiscovery,
         agents: Agents::None,
@@ -374,7 +392,7 @@ pub const AGENTS: &[Agent] = &[
         // Skills only for now. OpenClaw also keeps agents/, hooks/ and
         // extensions/ directories, but their formats are unverified and a
         // guessed target here writes into a real config file.
-        instructions: Instructions::None,
+        instructions: &[],
         mcp: Mcp::None,
         commands: Commands::None,
         agents: Agents::None,
@@ -391,7 +409,7 @@ pub const AGENTS: &[Agent] = &[
         // works.
         skills: Skills::FanOut(".hermes/skills"),
         // SOUL.md is the likely instructions surface; unverified, so unclaimed.
-        instructions: Instructions::None,
+        instructions: &[],
         mcp: Mcp::None,
         commands: Commands::None,
         agents: Agents::None,
@@ -406,17 +424,21 @@ pub const AGENTS: &[Agent] = &[
         // verified 2026-08-16). agent-sync never fanned skills out to gemini,
         // so there is no legacy dir to clean.
         skills: Skills::Native { legacy: None },
-        // Not a symlink: claude-mem writes ~/.gemini/GEMINI.md through a link
-        // into the Commons. Gemini refuses a home-level `@` import as a path
-        // traversal, but loads every name in `context.fileName`, each joined
-        // under ~/.gemini — so `../.agents/AGENTS.md` is the Commons. GEMINI.md
+        // Not a symlink by default: claude-mem writes ~/.gemini/GEMINI.md
+        // through a link into the Commons, and so does Gemini's own memory
+        // tool. Gemini refuses a home-level `@` import as a path traversal,
+        // but loads every name in `context.fileName`, each joined under
+        // ~/.gemini — so `../.agents/AGENTS.md` is the Commons. GEMINI.md
         // stays first: element 0 is where Gemini writes memories (ADR-0008).
-        instructions: Instructions::IncludeEntry {
-            file: ".gemini/settings.json",
-            key: "context.fileName",
-            keep_first: Some("GEMINI.md"),
-            legacy_link: Some(".gemini/GEMINI.md"),
-        },
+        // The link is on request, hazard and all (ADR-0009).
+        instructions: &[
+            Instructions::IncludeEntry {
+                file: ".gemini/settings.json",
+                key: "context.fileName",
+                keep_first: Some("GEMINI.md"),
+            },
+            Instructions::Symlink(".gemini/GEMINI.md"),
+        ],
         mcp: Mcp::KeyMerge {
             file: ".gemini/settings.json",
             root_key: "mcpServers",
@@ -446,7 +468,7 @@ pub const AGENTS: &[Agent] = &[
             legacy: Some(".cursor/skills"),
         },
         // Cursor's user-level rules live in app-local storage, out of scope.
-        instructions: Instructions::None,
+        instructions: &[],
         mcp: Mcp::KeyMerge {
             file: ".cursor/mcp.json",
             root_key: "mcpServers",
@@ -461,7 +483,9 @@ pub const AGENTS: &[Agent] = &[
         name: "windsurf",
         root: ".codeium/windsurf",
         skills: Skills::None,
-        instructions: Instructions::Symlink(".codeium/windsurf/memories/global_rules.md"),
+        instructions: &[Instructions::Symlink(
+            ".codeium/windsurf/memories/global_rules.md",
+        )],
         mcp: Mcp::KeyMerge {
             file: ".codeium/windsurf/mcp_config.json",
             root_key: "mcpServers",
@@ -476,7 +500,7 @@ pub const AGENTS: &[Agent] = &[
         name: "roo",
         root: ".roo",
         skills: Skills::None,
-        instructions: Instructions::RulesDirLink(".roo/rules"),
+        instructions: &[Instructions::RulesDirLink(".roo/rules")],
         // Roo's user-scope MCP lives in VS Code globalStorage — out of scope.
         mcp: Mcp::None,
         commands: Commands::FanOut(".roo/commands"),
@@ -493,7 +517,7 @@ pub const AGENTS: &[Agent] = &[
         // code that silently regressed once before — below ADR-0004's bar
         // that a registry row must be true unconditionally.
         skills: Skills::None,
-        instructions: Instructions::None,
+        instructions: &[],
         mcp: Mcp::KeyMerge {
             file: ".cline/mcp.json",
             root_key: "mcpServers",

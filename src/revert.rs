@@ -101,51 +101,53 @@ pub fn run(env: &Env, config: &Config, r: &mut Reporter, name: &str) -> i32 {
     }
 }
 
-/// The instructions surface: undo whichever mechanism this agent takes.
+/// The instructions surface: undo every route this agent can take, not only
+/// the chosen one, so a leftover from an earlier choice goes too. Each removal
+/// touches only what is ours.
 fn revert_instructions(env: &Env, target: &Target, commons: &Path, r: &mut Reporter) -> usize {
-    match target.instructions {
-        Instructions::Symlink(rel) => remove_our_link(env, &env.in_home(rel), commons, r),
-        Instructions::RulesDirLink(dir) => {
-            let path = env.in_home(dir).join(commons::INSTRUCTIONS);
-            remove_our_link(env, &path, commons, r)
-        }
-        Instructions::ImportLine(rel) => {
-            let path = env.in_home(rel);
-            match instructions::remove_import_line(env, &path) {
-                Ok(true) => {
-                    r.line(format!("removed the import line from {rel}"));
-                    1
-                }
-                Ok(false) => 0,
-                Err(e) => {
-                    r.problem(format!("cannot rewrite {}: {e}", path.display()));
-                    0
+    let routes = target.agent.map_or(&[][..], |a| a.instructions);
+    routes
+        .iter()
+        .map(|route| match *route {
+            Instructions::Symlink(rel) => remove_our_link(env, &env.in_home(rel), commons, r),
+            Instructions::RulesDirLink(dir) => {
+                let path = env.in_home(dir).join(commons::INSTRUCTIONS);
+                remove_our_link(env, &path, commons, r)
+            }
+            Instructions::ImportLine(rel) => {
+                let path = env.in_home(rel);
+                match instructions::remove_import_line(env, &path) {
+                    Ok(true) => {
+                        r.line(format!("removed the import line from {rel}"));
+                        1
+                    }
+                    Ok(false) => 0,
+                    Err(e) => {
+                        r.problem(format!("cannot rewrite {}: {e}", path.display()));
+                        0
+                    }
                 }
             }
-        }
-        Instructions::IncludeEntry {
-            file,
-            key,
-            keep_first,
-            legacy_link,
-        } => {
-            let mut removed = 0;
-            if let Some(rel) = legacy_link {
-                removed += remove_our_link(env, &env.in_home(rel), commons, r);
-            }
-            let path = env.in_home(file);
-            match instructions::remove_include_entry(env, &path, key, keep_first) {
-                Ok(true) => {
-                    r.line(format!("removed the {key} entry from {file}"));
-                    removed += 1;
+            Instructions::IncludeEntry {
+                file,
+                key,
+                keep_first,
+            } => {
+                let path = env.in_home(file);
+                match instructions::remove_include_entry(env, &path, key, keep_first) {
+                    Ok(true) => {
+                        r.line(format!("removed the {key} entry from {file}"));
+                        1
+                    }
+                    Ok(false) => 0,
+                    Err(e) => {
+                        r.problem(format!("cannot rewrite {}: {e}", path.display()));
+                        0
+                    }
                 }
-                Ok(false) => {}
-                Err(e) => r.problem(format!("cannot rewrite {}: {e}", path.display())),
             }
-            removed
-        }
-        Instructions::None => 0,
-    }
+        })
+        .sum()
 }
 
 /// Managed MCP entries: every name the Commons defines, stripped from this one

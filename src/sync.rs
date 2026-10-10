@@ -150,7 +150,7 @@ pub fn run(env: &Env, config: &Config, r: &mut Reporter, dry_run: bool) -> i32 {
                 dry_run,
             );
         }
-        changes += sync_instructions(&plan.instructions, r, dry_run);
+        changes += sync_instructions(env, &plan.instructions, r, dry_run);
         changes += sync_mcp(&plan.mcp, r, dry_run);
         changes += sync_rendered(&plan.rendered, r, dry_run);
         changes += sync_hooks(&plan.hooks, r, dry_run);
@@ -395,8 +395,13 @@ fn by_file<'i, T: InFile>(items: &[&'i T]) -> Vec<(&'i Path, Vec<&'i T>)> {
     grouped
 }
 
-/// The instructions family: one Commons file, four per-agent mechanisms.
-fn sync_instructions(items: &[instructions::Item], r: &mut Reporter, dry_run: bool) -> usize {
+/// The instructions family: one Commons file, each agent on its chosen route.
+fn sync_instructions(
+    env: &Env,
+    items: &[instructions::Item],
+    r: &mut Reporter,
+    dry_run: bool,
+) -> usize {
     let noteworthy: Vec<&instructions::Item> = items
         .iter()
         .filter(|i| i.state != instructions::State::Linked)
@@ -408,8 +413,14 @@ fn sync_instructions(items: &[instructions::Item], r: &mut Reporter, dry_run: bo
 
     r.line("instructions (AGENTS.md)");
     let mut changed = 0;
+    // A Target's leftovers follow its chosen route; once that write fails,
+    // removing them would leave the agent with no instructions at all.
+    let mut failed: Vec<&str> = Vec::new();
 
     for item in noteworthy {
+        if failed.contains(&item.target.as_str()) {
+            continue;
+        }
         if !item.state.needs_change() {
             r.line(format!(
                 "  {:<9} {} — {}",
@@ -422,8 +433,9 @@ fn sync_instructions(items: &[instructions::Item], r: &mut Reporter, dry_run: bo
         if dry_run {
             r.line(format!("  {:<9} {}", item.state.label(), item.target));
             changed += 1;
-        } else if let Err(e) = instructions::apply(item) {
+        } else if let Err(e) = instructions::apply(env, item) {
             r.problem(format!("cannot write {}: {e}", item.path.display()));
+            failed.push(&item.target);
         } else {
             r.line(format!("  {:<9} {}", item.state.label(), item.target));
             changed += 1;

@@ -307,3 +307,21 @@ fn revert_is_idempotent() {
         .assert_stdout_has("nothing of agent-sync's in claude — nothing to revert");
     assert_eq!(after, f.tree(), "a second revert must change nothing");
 }
+
+#[test]
+fn revert_removes_a_claude_md_link_without_rewriting_the_commons_through_it() {
+    // A Commons that already carries the import line (agent-sync 1.1.0 could
+    // append it through this very link) must come out of revert unchanged.
+    let f = machine();
+    f.commons_file("AGENTS.md", "# shared\n@~/.agents/AGENTS.md\n");
+    f.symlink(".claude/CLAUDE.md", "../.agents/AGENTS.md");
+
+    config(&f, "[targets]\nclaude = false\n");
+    f.run(&["revert", "claude"]).assert_clean();
+
+    assert!(!f.present(".claude/CLAUDE.md"));
+    assert_eq!(
+        f.contents_of_commons("AGENTS.md"),
+        "# shared\n@~/.agents/AGENTS.md\n"
+    );
+}

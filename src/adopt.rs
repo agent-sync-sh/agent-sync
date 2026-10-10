@@ -693,7 +693,7 @@ fn fan_out_instructions(a: &Adoption, r: &mut Reporter, dry_run: bool) {
             instructions::State::Missing => {
                 if dry_run {
                     r.line(format!("  would link into {} ({place})", item.target));
-                } else if let Err(e) = instructions::apply(&item) {
+                } else if let Err(e) = instructions::apply(a.env, &item) {
                     r.problem(format!("cannot link into {} ({place}): {e}", item.target));
                 } else {
                     r.line(format!("  linked into {} ({place})", item.target));
@@ -707,14 +707,23 @@ fn fan_out_instructions(a: &Adoption, r: &mut Reporter, dry_run: bool) {
                 };
                 if dry_run {
                     r.line(format!("  would add {what} to {} ({place})", item.target));
-                } else if let Err(e) = instructions::apply(&item) {
+                } else if let Err(e) = instructions::apply(a.env, &item) {
                     r.problem(format!("cannot write {}: {e}", item.path.display()));
                 } else {
                     r.line(format!("  added {what} to {} ({place})", item.target));
                 }
             }
+            instructions::State::Replace => {
+                if dry_run {
+                    r.line(format!("  would replace {place} for {}", item.target));
+                } else if let Err(e) = instructions::apply(a.env, &item) {
+                    r.problem(format!("cannot replace {}: {e}", item.path.display()));
+                } else {
+                    r.line(format!("  replaced {place} for {}", item.target));
+                }
+            }
             // Adopt fans out; the legacy prune is sync's job.
-            instructions::State::LegacyLink => {}
+            instructions::State::Legacy => {}
             // Somebody else's file or link: kept, named in sync's own words.
             instructions::State::Conflict | instructions::State::Foreign => {
                 r.line(format!("  {}: {}", item.target, item.note()));
@@ -786,13 +795,11 @@ fn locate(env: &Env, config: &Config, path: &Path) -> Option<Placement> {
         // Instructions are a single file rather than a directory of entries, so
         // they are matched by full path, not by parent directory.
         let destination = match target.instructions {
-            Instructions::Symlink(rel) => Some(env.in_home(rel)),
-            Instructions::RulesDirLink(dir) => Some(env.in_home(dir).join("AGENTS.md")),
-            // Claude's file is the user's own, and an include-entry agent's
-            // file is another tool's; neither is ever adopted wholesale.
-            Instructions::ImportLine(_)
-            | Instructions::IncludeEntry { .. }
-            | Instructions::None => None,
+            Some(Instructions::Symlink(rel)) => Some(env.in_home(rel)),
+            Some(Instructions::RulesDirLink(dir)) => Some(env.in_home(dir).join("AGENTS.md")),
+            // An import-line file is the user's own, and an include-entry
+            // agent's file is another tool's; neither is ever adopted wholesale.
+            Some(Instructions::ImportLine(_) | Instructions::IncludeEntry { .. }) | None => None,
         };
         if destination.map(|d| link::normalize(&d)) == Some(link::normalize(path)) {
             return Some(Placement {

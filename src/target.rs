@@ -21,13 +21,14 @@ pub struct Target {
     /// The registry row, when this is a built-in agent. Config-defined targets
     /// have none, and therefore take fan-out families only.
     pub agent: Option<&'static Agent>,
-    /// The instructions mechanic this Target takes, resolved once so every
-    /// command reads the same answer. Read this, never the registry row.
-    pub instructions: Instructions,
+    /// The instructions route this Target takes — the user's choice, else the
+    /// row's default — resolved once so every command reads the same answer.
+    /// Read this, never the registry row. `None`: no instructions surface.
+    pub instructions: Option<Instructions>,
 }
 
 impl Target {
-    fn from_agent(agent: &'static Agent) -> Self {
+    fn from_agent(agent: &'static Agent, config: &Config) -> Self {
         let fanout = Family::ALL
             .iter()
             .filter_map(|family| {
@@ -42,7 +43,11 @@ impl Target {
             root: agent.root.to_string(),
             fanout,
             agent: Some(agent),
-            instructions: agent.instructions,
+            instructions: config
+                .route(agent.name)
+                .and_then(|route| agent.instructions.iter().find(|i| i.route() == route))
+                .or(agent.instructions.first())
+                .copied(),
         }
     }
 
@@ -83,7 +88,7 @@ pub fn resolve(env: &Env, config: &Config) -> Vec<Target> {
     let mut targets: Vec<Target> = registry::AGENTS
         .iter()
         .filter(|agent| !config.is_disabled(agent.name))
-        .map(Target::from_agent)
+        .map(|agent| Target::from_agent(agent, config))
         .collect();
 
     for custom in config.custom() {
@@ -98,7 +103,7 @@ pub fn resolve(env: &Env, config: &Config) -> Vec<Target> {
             root: custom.root.clone(),
             fanout: custom.fanout.iter().map(|(f, d)| (*f, d.clone())).collect(),
             agent: None,
-            instructions: Instructions::None,
+            instructions: None,
         });
     }
 
@@ -111,7 +116,7 @@ pub fn resolve(env: &Env, config: &Config) -> Vec<Target> {
 /// caller: it exists to reach the agents [`resolve`] deliberately drops.
 pub fn find(config: &Config, name: &str) -> Option<Target> {
     if let Some(agent) = registry::by_name(name) {
-        return Some(Target::from_agent(agent));
+        return Some(Target::from_agent(agent, config));
     }
     config
         .custom()
@@ -122,6 +127,6 @@ pub fn find(config: &Config, name: &str) -> Option<Target> {
             root: custom.root.clone(),
             fanout: custom.fanout.iter().map(|(f, d)| (*f, d.clone())).collect(),
             agent: None,
-            instructions: Instructions::None,
+            instructions: None,
         })
 }

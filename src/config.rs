@@ -9,6 +9,9 @@
 //! [targets]
 //! cursor = false            # a detected agent agent-sync should leave alone
 //!
+//! [instructions]
+//! claude = "symlink"        # "symlink" or "import"; omitted, the default
+//!
 //! [custom.myagent]          # an agent the built-in registry does not know
 //! root = ".myagent"
 //! skills = ".myagent/skills"
@@ -52,6 +55,8 @@ pub struct McpRule {
 pub struct Config {
     /// Registry agents the user switched off, by name.
     disabled: Vec<String>,
+    /// Registry agents the user put on a route other than their default.
+    routes: BTreeMap<String, &'static str>,
     custom: Vec<CustomTarget>,
     mcp: BTreeMap<String, McpRule>,
 }
@@ -144,6 +149,45 @@ impl Config {
                     root,
                     fanout,
                 });
+            }
+        }
+
+        if let Some(item) = doc.get("instructions") {
+            let table = item.as_table().ok_or_else(|| Error {
+                message: format!(
+                    "{}: `instructions` must be a table of agents",
+                    path.display()
+                ),
+            })?;
+            for (name, value) in table.iter() {
+                let fail = |why: String| Error {
+                    message: format!("{}: instructions.{name}: {why}", path.display()),
+                };
+                let Some(agent) = crate::registry::by_name(name) else {
+                    return Err(fail(if config.custom.iter().any(|c| c.name == name) {
+                        format!("{name} is defined in this file and takes fan-out families only")
+                    } else {
+                        format!("{name} names no agent agent-sync knows about")
+                    }));
+                };
+                let route = match value.as_str() {
+                    Some("symlink") => "symlink",
+                    Some("import") => "import",
+                    _ => return Err(fail("must be \"symlink\" or \"import\"".into())),
+                };
+                if !agent.instructions.iter().any(|i| i.route() == route) {
+                    let offered: Vec<_> = agent.instructions.iter().map(|i| i.route()).collect();
+                    // An import the agent does not expand fails silently, so
+                    // only measured routes are offered (ADR-0008).
+                    return Err(fail(match offered.as_slice() {
+                        [] => format!("{name} takes no instructions from agent-sync"),
+                        _ => format!(
+                            "{name} has no {route} route agent-sync can use, only \"{}\" (ADR-0008)",
+                            offered.join("\" or \"")
+                        ),
+                    }));
+                }
+                config.routes.insert(name.to_string(), route);
             }
         }
 
@@ -250,6 +294,11 @@ impl Config {
             }
         }
         names
+    }
+
+    /// The instructions route the user chose for this agent, if any.
+    pub fn route(&self, name: &str) -> Option<&'static str> {
+        self.routes.get(name).copied()
     }
 
     pub fn is_disabled(&self, name: &str) -> bool {

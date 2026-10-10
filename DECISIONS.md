@@ -2256,3 +2256,49 @@ decided by a per-test ledger against the test-audit skill's retention bar, with
 per-test coverage used to find lines only one test reaches.
 
 Decided-by: agent
+
+## 2026-10-09 — Each agent's instructions route is the user's choice; Claude defaults to the import line
+
+The user asked that every agent take either a symlink or an import route to
+the Commons `AGENTS.md`, chosen per agent in `agent-sync.toml`
+(`[instructions] <agent> = "symlink" | "import"`), with symlink as the default
+where the agent supports it and import otherwise, and Claude on import because
+Claude Cowork desktop sessions skip a `~/.claude/CLAUDE.md` that is itself a
+symlink (Claude Code memory docs, external-imports warning). This replaces the
+unmerged `claude-md-mechanic` branch, which flipped Claude to symlink; only its
+seam refactor (`cc4a544`) is reused, and its ADR-0009 is superseded by this
+branch's ADR-0009.
+
+Calls the request did not settle, with who made each:
+
+- The user accepted, when asked, that Cowork also skips a user-scope import
+  resolving outside the session's working directory, so under import Cowork
+  reads `CLAUDE.md`'s own text and not the Commons. No copy route is added.
+- The user chose, when asked, to let opencode and Gemini opt into a symlink,
+  documented as a hazard: claude-mem writes through it (ADR-0008), and Gemini's
+  memory target `GEMINI.md` is then the Commons. Their default stays the
+  include-entry. A review pass argued for refusing Gemini; the user's answer
+  stands and the Include-entry glossary line is narrowed to that route.
+- The agent decided that an agent with no route of the requested kind fails
+  config loading (`codex = "import"` names ADR-0008), since an unparsed import
+  fails silently. Codex, pi, oh-my-pi, windsurf and roo stay symlink-only.
+- The agent decided that `sync` converges a switch on one path in one step: a
+  `CLAUDE.md` that is our link becomes a file holding only the import line,
+  and a `CLAUDE.md` holding only that line becomes our link. Any other real
+  `CLAUDE.md` is a Conflict. A file holding only our line is therefore ours.
+  This turns the fleet's hand-made `CLAUDE.md` links into files on the first
+  sync after release, which is the requested result.
+- The agent decided that an include entry left from the route not taken is
+  pruned only once the chosen link is in place, so a blocked link never leaves
+  opencode or Gemini with no instructions; a fresh switch takes two syncs.
+- The agent fixed `revert` rewriting the Commons through a `CLAUDE.md` link
+  (`remove_import_line` followed it), found while planning.
+
+Decided-by: user (route choice, Claude default, Cowork scope, opencode and
+Gemini opt-in); agent (the rest)
+
+*Note, 2026-10-09, during implementation:* the prune gate changed from
+"only once the chosen link is in place" to "unless the chosen route is a
+Conflict or Foreign", so a switch converges in one sync; `sync` instead skips
+a Target's remaining instructions items once one of its writes fails, which
+keeps the same guarantee when a link cannot be created. Decided-by: agent.

@@ -479,3 +479,147 @@ fn doctor_names_an_import_line_in_a_file_whose_agent_ignores_it() {
         .assert_stderr_has(".gemini/GEMINI.md")
         .assert_stderr_has("silently ignored");
 }
+
+// Routes: each agent takes a symlink or an import, by the user's choice in
+// agent-sync.toml where the agent offers both (ADR-0009).
+
+fn choose(f: &Fixture, body: &str) {
+    f.file(".config/agent-sync/agent-sync.toml", body);
+}
+
+#[test]
+fn a_claude_md_linked_to_the_commons_becomes_a_file_holding_only_the_import() {
+    let f = machine();
+    f.symlink(".claude/CLAUDE.md", "../.agents/AGENTS.md");
+
+    f.run(&["sync"]).assert_clean().assert_stdout_has("replace");
+
+    assert!(!f.is_symlink(".claude/CLAUDE.md"));
+    assert_eq!(f.contents(".claude/CLAUDE.md"), "@~/.agents/AGENTS.md\n");
+    assert_eq!(
+        f.contents_of_commons("AGENTS.md"),
+        "# shared instructions\n",
+        "the import line must never be written through the link into the Commons"
+    );
+    f.run(&["status"]).assert_code(0);
+}
+
+#[test]
+fn on_the_symlink_route_a_claude_md_holding_only_the_import_becomes_our_link() {
+    let f = machine();
+    choose(&f, "[instructions]\nclaude = \"symlink\"\n");
+    f.file(".claude/CLAUDE.md", "\n@~/.agents/AGENTS.md\n");
+
+    f.run(&["sync"]).assert_clean();
+
+    assert!(f.is_symlink(".claude/CLAUDE.md"));
+    assert_eq!(f.contents(".claude/CLAUDE.md"), "# shared instructions\n");
+    f.run(&["status"]).assert_code(0);
+}
+
+#[test]
+fn on_the_symlink_route_claudes_own_prose_is_a_conflict_naming_both_fixes() {
+    let f = machine();
+    choose(&f, "[instructions]\nclaude = \"symlink\"\n");
+    f.file(".claude/CLAUDE.md", "# mine\n@~/.agents/AGENTS.md\n");
+
+    f.run(&["sync"])
+        .assert_clean()
+        .assert_stdout_has("conflict")
+        .assert_stdout_has("Commons AGENTS.md")
+        .assert_stdout_has("instructions.claude = \"import\"");
+
+    assert_eq!(
+        f.contents(".claude/CLAUDE.md"),
+        "# mine\n@~/.agents/AGENTS.md\n"
+    );
+}
+
+#[test]
+fn opencode_on_the_symlink_route_gets_the_link_and_loses_its_entry() {
+    let f = include_machine();
+    f.run(&["sync"]).assert_clean();
+    choose(&f, "[instructions]\nopencode = \"symlink\"\n");
+
+    f.run(&["sync"]).assert_clean();
+
+    assert!(f.is_symlink(".config/opencode/AGENTS.md"));
+    assert!(
+        f.json(".config/opencode/opencode.json")
+            .get("instructions")
+            .is_none(),
+        "one route only: the include entry is pruned"
+    );
+    f.run(&["status"]).assert_code(0);
+}
+
+#[test]
+fn opencode_keeps_its_entry_while_a_real_file_blocks_the_link() {
+    let f = include_machine();
+    f.run(&["sync"]).assert_clean();
+    choose(&f, "[instructions]\nopencode = \"symlink\"\n");
+    f.file(".config/opencode/AGENTS.md", "<claude-mem-context>\n");
+
+    f.run(&["sync"])
+        .assert_clean()
+        .assert_stdout_has("conflict");
+
+    assert_eq!(
+        f.json(".config/opencode/opencode.json")["instructions"],
+        serde_json::json!(["~/.agents/AGENTS.md"]),
+        "a blocked link must not cost opencode its only route"
+    );
+}
+
+#[test]
+fn gemini_switches_routes_both_ways() {
+    let f = include_machine();
+    f.run(&["sync"]).assert_clean();
+
+    choose(&f, "[instructions]\ngemini = \"symlink\"\n");
+    f.run(&["sync"]).assert_clean();
+    assert!(f.is_symlink(".gemini/GEMINI.md"));
+    assert!(f.json(".gemini/settings.json").get("context").is_none());
+
+    choose(&f, "");
+    f.run(&["sync"]).assert_clean();
+    assert!(!f.present(".gemini/GEMINI.md"));
+    assert_eq!(
+        f.json(".gemini/settings.json")["context"]["fileName"],
+        serde_json::json!(["GEMINI.md", "../.agents/AGENTS.md"])
+    );
+    f.run(&["status"]).assert_code(0);
+}
+
+#[test]
+fn status_json_names_the_path_of_each_instructions_item() {
+    let f = machine();
+
+    let out = f.run(&["status", "--json"]);
+    let parsed: serde_json::Value = serde_json::from_str(&out.stdout).unwrap();
+    let claude = parsed["instructions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|e| e["agent"] == "claude")
+        .unwrap()
+        .clone();
+    assert!(
+        claude["path"].as_str().unwrap().ends_with("CLAUDE.md"),
+        "{claude}"
+    );
+}
+
+#[test]
+fn doctor_never_calls_claudes_import_line_inert_on_either_route() {
+    let f = machine();
+    f.file(".codex/AGENTS.md", "@~/.agents/AGENTS.md\n");
+    f.file(".claude/CLAUDE.md", "# mine\n@~/.agents/AGENTS.md\n");
+
+    for body in ["", "[instructions]\nclaude = \"symlink\"\n"] {
+        choose(&f, body);
+        f.run(&["doctor"])
+            .assert_stderr_has(".codex/AGENTS.md")
+            .assert_stderr_lacks("CLAUDE.md");
+    }
+}

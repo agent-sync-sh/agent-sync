@@ -60,44 +60,50 @@ pub fn run(env: &Env, config: &Config, r: &mut Reporter) -> i32 {
 
 /// An `@` import line naming the Commons in a file whose agent does not expand
 /// one is silent: the agent loads no instructions and reports no error, which
-/// is indistinguishable from working. Only Claude is measured to honor the
-/// line (ADR-0008), so the line is named wherever else it turns up.
+/// is indistinguishable from working. Only an agent with an import-line route
+/// is measured to honor the line (ADR-0008), and it honors it on either route,
+/// so the line is named wherever else it turns up.
 fn report_inert_imports(env: &Env, config: &Config, r: &mut Reporter) {
     let reference = crate::commons::INSTRUCTIONS.to_string();
     for target in target::resolve(env, config) {
         let Some(agent) = target.agent else {
             continue;
         };
-        let file = match target.instructions {
-            Instructions::Symlink(rel) => env.in_home(rel),
-            Instructions::RulesDirLink(dir) => env.in_home(dir).join(&reference),
-            Instructions::IncludeEntry { legacy_link, .. } => match legacy_link {
-                Some(rel) => env.in_home(rel),
-                None => continue,
-            },
-            // The one agent that expands the line; nothing to warn about.
-            Instructions::ImportLine(_) | Instructions::None => continue,
-        };
-        // A symlink into the Commons *is* the Commons file: any `@` line in it
-        // is the user's own business, not an inert import.
-        if std::fs::symlink_metadata(&file).is_ok_and(|m| m.file_type().is_symlink()) {
+        if agent
+            .instructions
+            .iter()
+            .any(|i| matches!(i, Instructions::ImportLine(_)))
+        {
             continue;
         }
-        let Ok(body) = std::fs::read_to_string(&file) else {
-            continue;
-        };
-        let inert = body.lines().any(|l| {
-            let l = l.trim();
-            l.strip_prefix('@')
-                .is_some_and(|rest| rest.trim().ends_with(&reference) && rest.contains(".agents"))
+        let files = agent.instructions.iter().filter_map(|route| match route {
+            Instructions::Symlink(rel) => Some(env.in_home(rel)),
+            Instructions::RulesDirLink(dir) => Some(env.in_home(dir).join(&reference)),
+            Instructions::ImportLine(_) | Instructions::IncludeEntry { .. } => None,
         });
-        if inert {
-            r.warn(format!(
+        for file in files {
+            // A symlink into the Commons *is* the Commons file: any `@` line in it
+            // is the user's own business, not an inert import.
+            if std::fs::symlink_metadata(&file).is_ok_and(|m| m.file_type().is_symlink()) {
+                continue;
+            }
+            let Ok(body) = std::fs::read_to_string(&file) else {
+                continue;
+            };
+            let inert = body.lines().any(|l| {
+                let l = l.trim();
+                l.strip_prefix('@').is_some_and(|rest| {
+                    rest.trim().ends_with(&reference) && rest.contains(".agents")
+                })
+            });
+            if inert {
+                r.warn(format!(
                 "{} holds an `@` import of the Commons, but {} does not expand import lines — it is silently ignored; the {} route is what reaches this agent",
                 file.display(),
                 agent.name,
                 registry::describe_instructions(target.instructions)
             ));
+            }
         }
     }
 }
