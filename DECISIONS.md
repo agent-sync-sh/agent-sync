@@ -2302,3 +2302,66 @@ Gemini opt-in); agent (the rest)
 Conflict or Foreign", so a switch converges in one sync; `sync` instead skips
 a Target's remaining instructions items once one of its writes fails, which
 keeps the same guarantee when a link cannot be created. Decided-by: agent.
+
+## 2026-10-09 — Release 1.2.0 ships the instructions route, and the fleet runs it
+
+Cut on Frank's instruction to release, verify, roll out and tidy. A minor bump
+because a new `[instructions]` config table changes a fleet-visible file. Two
+things had to land before the tag. First, coding-agent's hourly
+`sync-agentsmd` task failed any host whose `~/.claude/CLAUDE.md` was not a
+link, and the nightly provisioning runs `sync` on every Mac, so its check now
+also passes a file holding the import line (coding-agent Q325, `f85dbd8`).
+Second, `scripts/e2e-windows.ps1` gained step 10b, which switches Claude's
+route to symlink and back (`5faf43d`). Then `Cargo.toml` went to 1.2.0
+(`00a80c6`), `verify-packaging.sh` passed, the signed annotated tag
+`agent-sync-v1.2.0` was pushed, and release run 38021788871 passed all
+seventeen jobs.
+
+Verified:
+
+- GitHub Release: not a draft, six binaries plus `SHA256SUMS.txt`, and an
+  anonymous download of the darwin-arm64 tarball answers 200.
+- crates.io: the index lists 1.2.0, not yanked.
+- npm: all seven packages carry 1.2.0. They appeared one at a time over about
+  two and a half minutes, and then a clean-directory
+  `npm install agent-sync-sh@1.2.0` ran `agent-sync 1.2.0`.
+- PyPI: seven wheels.
+- Homebrew: the `tap` job committed `0266212`. Its darwin-arm64, darwin-x64 and
+  linux-x64 sha256 values equal `SHA256SUMS.txt`, and the live darwin-arm64
+  asset matches.
+- Windows: the script was copied to `windows-zx8`'s `%TEMP%` (sha256
+  `6c7a8f78…` on both ends) and run elevated in PowerShell 5.1 against the
+  tag. 45 of 45 assertions passed, including step 10b's five. The real
+  profile's fingerprints were unchanged, and the script was deleted afterwards.
+
+Fleet: before the rollout, all ten hosts ran 1.1.0 with a `CLAUDE.md` link.
+Every Commons was clean, and every `status` planned "the import line will be
+added". That is the write-through that the nightly runs (02:00 on the Macs,
+02:17 cron on the Ubuntu boxes) would have made.
+
+- m6 was the canary. After `brew upgrade` and `sync`, a gate checked that
+  headless `claude -p`, from `/tmp` and from inside `~/coding-agent`, quotes
+  the Commons' first sentence through the import line. It does, with no
+  approval prompt.
+- Then m2. Then macbook-air, mac-mini-2018, mac-studio-m3, archs-mac-mini,
+  dev-server-frank-lume and macbook-pro-nickel in parallel, each through a
+  script that refused to sync unless Claude's `replace` was the only pending
+  instructions change.
+- supermicro and dev-server-frank took the linux-x64 tarball into
+  `~/.local/bin`, refused unless its sha256 equalled the published one.
+- On all ten hosts, `sync` made exactly one change. `CLAUDE.md` now holds only
+  `@~/.agents/AGENTS.md`, the Commons md5 is unchanged, no clone is dirty,
+  and `status` reports Claude `imported`.
+- A manual `sync-agentsmd` run passed the new check on every host.
+
+A peer session, agents-md-refactor, upgraded the two Ubuntu boxes in parallel
+from a survey taken before this rollout. Its `sync` changed nothing.
+
+Left alone: m6's `agent-reach` Claude skill is a `variant-identical` copy,
+which only `adopt` re-links. It predates this release. The same
+`sync-agentsmd` run reported a one-off fast-forward failure on macbook-air's
+`~/personal-agent`; that clone was level with its upstream minutes later.
+
+Decided-by: human (release, verify, roll out, tidy); agent (minor bump,
+changing the hourly check before the tag, the e2e step, the canary gate and
+host order)
