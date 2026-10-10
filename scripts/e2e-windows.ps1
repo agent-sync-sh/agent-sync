@@ -180,6 +180,21 @@ Check "status exits clean" ($LASTEXITCODE -eq 0) "exit $LASTEXITCODE"
 $o = Run sync
 Check "second sync makes no changes" ($o -notmatch "\b[1-9]\d* changes? made") $o.Trim()
 
+"=== 10b. the instructions route switches both ways [1.2.0] ==="
+$cfg = "$h\.config\agent-sync\agent-sync.toml"
+New-Item -ItemType Directory -Path (Split-Path $cfg) -Force | Out-Null
+Set-Content $cfg "[instructions]`nclaude = `"symlink`""
+$o = Run sync
+$cm = Get-Item "$h\.claude\CLAUDE.md" -Force -ErrorAction SilentlyContinue
+Check "symlink route replaces the import file with a link" ($cm -and $cm.LinkType -eq "SymbolicLink") "LinkType=$($cm.LinkType) $($o.Trim())"
+Check "Claude reads the Commons through it" ((Get-Content "$h\.claude\CLAUDE.md" -Raw) -match "shared instructions")
+Remove-Item $cfg
+$o = Run sync
+$cm = Get-Item "$h\.claude\CLAUDE.md" -Force -ErrorAction SilentlyContinue
+Check "import route replaces the link with a file" ($cm -and -not $cm.LinkType) "LinkType=$($cm.LinkType) $($o.Trim())"
+Check "the file holds the import line" ((Get-Content "$h\.claude\CLAUDE.md" -Raw) -match "@~/\.agents/AGENTS\.md")
+Check "the Commons AGENTS.md has no import line" ((Get-Content "$h\.agents\AGENTS.md" -Raw) -notmatch "@~")
+
 "=== 11. adopt a repo path becomes a Sourced entry ==="
 New-Item -ItemType Directory -Path "$h\repo\.git" -Force | Out-Null
 Set-Content "$h\repo\.git\HEAD" "ref: refs/heads/main"
