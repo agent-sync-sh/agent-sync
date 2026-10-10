@@ -68,7 +68,7 @@ fn report_inert_imports(env: &Env, config: &Config, r: &mut Reporter) {
         let Some(agent) = target.agent else {
             continue;
         };
-        let file = match agent.instructions {
+        let file = match target.instructions {
             Instructions::Symlink(rel) => env.in_home(rel),
             Instructions::RulesDirLink(dir) => env.in_home(dir).join(&reference),
             Instructions::IncludeEntry { legacy_link, .. } => match legacy_link {
@@ -96,7 +96,7 @@ fn report_inert_imports(env: &Env, config: &Config, r: &mut Reporter) {
                 "{} holds an `@` import of the Commons, but {} does not expand import lines — it is silently ignored; the {} route is what reaches this agent",
                 file.display(),
                 agent.name,
-                registry::describe_instructions(agent.instructions)
+                registry::describe_instructions(target.instructions)
             ));
         }
     }

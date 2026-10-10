@@ -9,7 +9,7 @@ use std::path::Path;
 use crate::config::Config;
 use crate::env::Env;
 use crate::family::Family;
-use crate::registry::{self, Agent};
+use crate::registry::{self, Agent, Instructions};
 
 /// One Target this invocation will act on.
 #[derive(Debug, Clone)]
@@ -21,6 +21,9 @@ pub struct Target {
     /// The registry row, when this is a built-in agent. Config-defined targets
     /// have none, and therefore take fan-out families only.
     pub agent: Option<&'static Agent>,
+    /// The instructions mechanic this Target takes, resolved once so every
+    /// command reads the same answer. Read this, never the registry row.
+    pub instructions: Instructions,
 }
 
 impl Target {
@@ -39,6 +42,7 @@ impl Target {
             root: agent.root.to_string(),
             fanout,
             agent: Some(agent),
+            instructions: agent.instructions,
         }
     }
 
@@ -64,7 +68,7 @@ impl Target {
     /// Capability summary for reports.
     pub fn capabilities(&self) -> Vec<(&'static str, String)> {
         match self.agent {
-            Some(agent) => agent.capabilities(),
+            Some(agent) => agent.capabilities(self.instructions),
             None => self
                 .fanout
                 .iter()
@@ -94,6 +98,7 @@ pub fn resolve(env: &Env, config: &Config) -> Vec<Target> {
             root: custom.root.clone(),
             fanout: custom.fanout.iter().map(|(f, d)| (*f, d.clone())).collect(),
             agent: None,
+            instructions: Instructions::None,
         });
     }
 
@@ -117,5 +122,6 @@ pub fn find(config: &Config, name: &str) -> Option<Target> {
             root: custom.root.clone(),
             fanout: custom.fanout.iter().map(|(f, d)| (*f, d.clone())).collect(),
             agent: None,
+            instructions: Instructions::None,
         })
 }

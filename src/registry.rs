@@ -197,11 +197,12 @@ impl Agent {
         }
     }
 
-    /// Human-readable capability summary, in family order.
-    pub fn capabilities(&self) -> Vec<(&'static str, String)> {
+    /// Human-readable capability summary, in family order, naming the
+    /// instructions mechanic the Target resolved rather than the row's default.
+    pub fn capabilities(&self, instructions: Instructions) -> Vec<(&'static str, String)> {
         vec![
             ("skills", describe_skills(self.skills)),
-            ("instructions", describe_instructions(self.instructions)),
+            ("instructions", describe_instructions(instructions)),
             ("mcp", describe_mcp(self.mcp)),
             ("commands", describe_commands(self.commands)),
             ("agents", describe_agents(self.agents)),

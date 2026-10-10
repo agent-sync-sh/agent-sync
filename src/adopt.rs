@@ -785,23 +785,21 @@ fn locate(env: &Env, config: &Config, path: &Path) -> Option<Placement> {
 
         // Instructions are a single file rather than a directory of entries, so
         // they are matched by full path, not by parent directory.
-        if let Some(agent) = target.agent {
-            let destination = match agent.instructions {
-                Instructions::Symlink(rel) => Some(env.in_home(rel)),
-                Instructions::RulesDirLink(dir) => Some(env.in_home(dir).join("AGENTS.md")),
-                // Claude's file is the user's own, and an include-entry agent's
-                // file is another tool's; neither is ever adopted wholesale.
-                Instructions::ImportLine(_)
-                | Instructions::IncludeEntry { .. }
-                | Instructions::None => None,
-            };
-            if destination.map(|d| link::normalize(&d)) == Some(link::normalize(path)) {
-                return Some(Placement {
-                    target: target.name.clone(),
-                    surface: Surface::Instructions,
-                    commons_rel: PathBuf::from(commons::INSTRUCTIONS),
-                });
-            }
+        let destination = match target.instructions {
+            Instructions::Symlink(rel) => Some(env.in_home(rel)),
+            Instructions::RulesDirLink(dir) => Some(env.in_home(dir).join("AGENTS.md")),
+            // Claude's file is the user's own, and an include-entry agent's
+            // file is another tool's; neither is ever adopted wholesale.
+            Instructions::ImportLine(_)
+            | Instructions::IncludeEntry { .. }
+            | Instructions::None => None,
+        };
+        if destination.map(|d| link::normalize(&d)) == Some(link::normalize(path)) {
+            return Some(Placement {
+                target: target.name.clone(),
+                surface: Surface::Instructions,
+                commons_rel: PathBuf::from(commons::INSTRUCTIONS),
+            });
         }
     }
     None

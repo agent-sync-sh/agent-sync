@@ -103,11 +103,7 @@ pub fn run(env: &Env, config: &Config, r: &mut Reporter, name: &str) -> i32 {
 
 /// The instructions surface: undo whichever mechanism this agent takes.
 fn revert_instructions(env: &Env, target: &Target, commons: &Path, r: &mut Reporter) -> usize {
-    let Some(agent) = target.agent else {
-        // Config-defined targets take fan-out families only.
-        return 0;
-    };
-    match agent.instructions {
+    match target.instructions {
         Instructions::Symlink(rel) => remove_our_link(env, &env.in_home(rel), commons, r),
         Instructions::RulesDirLink(dir) => {
             let path = env.in_home(dir).join(commons::INSTRUCTIONS);

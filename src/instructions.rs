@@ -171,12 +171,7 @@ pub fn survey(env: &Env, config: &Config, commons_file: &Path) -> Vec<Item> {
     let mut items = Vec::new();
 
     for target in target::resolve(env, config) {
-        let Some(agent) = target.agent else {
-            // Config-defined targets take fan-out families only.
-            continue;
-        };
-
-        let item = match agent.instructions {
+        let item = match target.instructions {
             Instructions::Symlink(rel) => link_item(&target.name, env.in_home(rel), commons_file),
             Instructions::RulesDirLink(dir) => {
                 let path = env.in_home(dir).join("AGENTS.md");
