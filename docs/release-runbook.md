@@ -108,7 +108,7 @@ one more reason not to add platform packages casually.
 ## Releasing
 
 1. Bump `version` in `Cargo.toml`. Nothing else carries a version. The crate
-   requires Rust 1.97 (edition 2024), so a release machine needs a current
+   requires Rust 1.100 (edition 2024), so a release machine needs a current
    toolchain.
 2. `./scripts/verify-packaging.sh` — must end with *Local packaging checks
    passed* and no blocked packages.

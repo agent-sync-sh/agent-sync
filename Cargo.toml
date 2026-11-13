@@ -6,7 +6,7 @@
 name = "agent-sync-sh"
 version = "1.2.0"
 edition = "2024"
-rust-version = "1.97"
+rust-version = "1.100"
 license = "MIT"
 description = "Canonical configs, fanned out to all your AI coding agents from the Commons, the canonical ~/.agents directory"
 repository = "https://github.com/agent-sync-sh/agent-sync"

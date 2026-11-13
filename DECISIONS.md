@@ -2365,3 +2365,23 @@ which only `adopt` re-links. It predates this release. The same
 Decided-by: human (release, verify, roll out, tidy); agent (minor bump,
 changing the hourly check before the tag, the e2e step, the canary gate and
 host order)
+
+## 2026-11-12 — MSRV 1.100, the stable of the day
+
+Rust 1.100.0 shipped today. Frank asked for every Rust project of his to move
+to it, and chose to raise the declared floor too, so `rust-version` goes from
+1.97 to 1.100. This keeps the 2026-08-13 rule: the MSRV is the current stable,
+not the oldest that compiles. The MSRV job now installs, asserts and checks
+with `+1.100`. The comment about the job's first version still says 1.97,
+because that is what happened.
+
+The README, the release runbook and the four site pages now say "Rust 1.100+".
+The published 1.2.0 still builds on 1.97, so until the next release that is
+stricter than needed, never wrong. The raise reaches crates.io only with the
+next release, and its notes must name it.
+
+On 1.100 the code needed no change: clippy with `-D warnings`, the full test
+suite and `cargo +1.100 check --locked` all passed on mac-mini-m6.
+
+Decided-by: human (upgrade, raise the floor); agent (site wording before the
+release, keeping the historical comment)

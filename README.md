@@ -30,7 +30,7 @@ There is no state file. There never will be. The filesystem is the state.
 ```sh
 npm install -g agent-sync-sh   # prebuilt binary, macOS, Linux and Windows, no toolchain
 pip install agent-sync-sh      # the same binary, shipped as a wheel
-cargo install agent-sync-sh    # from source, needs Rust 1.97+
+cargo install agent-sync-sh    # from source, needs Rust 1.100+
 
 npx agent-sync-sh doctor       # or try it first, without installing anything
 uvx agent-sync-sh doctor       # the same, if you reach for uv rather than npm
