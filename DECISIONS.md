@@ -2385,3 +2385,20 @@ suite and `cargo +1.100 check --locked` all passed on mac-mini-m6.
 
 Decided-by: human (upgrade, raise the floor); agent (site wording before the
 release, keeping the historical comment)
+
+## 2026-11-12 — Release 1.3.0 ships the MSRV raise to 1.100
+
+Cut on Frank's instruction to release (2026-11-12). This is a minor bump, not a
+patch, because a source build on Rust 1.97–1.99 now fails. That change is
+visible to every `cargo install` user, even though the code did not change. The
+release also carries the two commits since 1.2.0: a failed instructions write
+now skips the rest of that Target's items (`01972b8`), and the issue notes for
+the Ubuntu 26 runner and opencode (`9269fd5`).
+
+The generated GitHub release notes list commits only, so the release body gets
+one line added: building from source now needs Rust 1.100+. The prebuilt
+binaries on npm, PyPI and Homebrew are unaffected. The fleet rollout is left to
+Frank; this cut stops at publish-and-verify.
+
+Decided-by: human (release); agent (minor bump, the release-notes line, no
+rollout)
