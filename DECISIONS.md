@@ -2402,3 +2402,30 @@ Frank; this cut stops at publish-and-verify.
 
 Decided-by: human (release); agent (minor bump, the release-notes line, no
 rollout)
+
+## 2026-11-13 — 1.3.0 is published and verified; the rollout waits for Frank
+
+Signed tag `agent-sync-v1.3.0` on `41b2cd0`. Release run 43389723744 passed
+all sixteen jobs, and the `tap` job committed `9bdafb6`.
+
+Verified:
+
+- GitHub Release: not a draft, six binaries plus `SHA256SUMS.txt`. An
+  anonymous download of the darwin-arm64 tarball answers 200, and its hash
+  matches. The notes start with the Rust 1.100+ line.
+- crates.io: the index lists 1.3.0 with `rust_version` 1.100, not yanked.
+- npm: all seven packages have `latest` at 1.3.0. The launcher tarball took
+  about five minutes to appear. After that, a clean-directory install ran
+  `agent-sync 1.3.0`.
+- PyPI: seven files. A clean-venv install ran `agent-sync 1.3.0`.
+- Homebrew: the darwin and linux sha256 values in the formula equal
+  `SHA256SUMS.txt`.
+- Windows: `scripts/e2e-windows.ps1` (sha256 `6c7a8f78…`, the same on both
+  ends) ran elevated on `windows-zx8` against the tag. 45 of 45 passed, the
+  real profile was unchanged, and the script was deleted afterwards.
+
+Not done: the fleet rollout. The nightly provisioning runs will pick up
+`brew upgrade` on the Macs. The tarball hosts (supermicro, dev-server-frank)
+need a manual install, as they did for 1.2.0.
+
+Decided-by: agent (verification); human (rollout, pending)
